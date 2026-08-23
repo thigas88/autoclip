@@ -171,5 +171,17 @@ def create_app(mode: str = "web") -> FastAPI:
                 status_code=500, 
                 content={"status": "error", "detail": str(e)}
             )
-    
+
+    # 挂载前端静态文件（如果构建产物存在）
+    from pathlib import Path
+    from fastapi.staticfiles import StaticFiles
+
+    dist_path = Path("/app/frontend/dist")
+    if not dist_path.exists():
+        dist_path = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+
+    if dist_path.exists() and (dist_path / "index.html").exists():
+        app.mount("/", StaticFiles(directory=str(dist_path), html=True), name="frontend")
+        logger.info(f"已挂载前端静态资源: {dist_path}")
+
     return app

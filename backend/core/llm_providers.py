@@ -387,21 +387,42 @@ class GeminiProvider(LLMProvider):
                 display_name="Gemini 2.5 Flash",
                 provider=ProviderType.GEMINI,
                 max_tokens=1000000,
-                description="Google Gemini 2.5 Flash模型"
+                description="Google Gemini 2.5 Flash"
             ),
             ModelInfo(
                 name="gemini-1.5-pro",
                 display_name="Gemini 1.5 Pro",
                 provider=ProviderType.GEMINI,
                 max_tokens=2000000,
-                description="Google Gemini 1.5 Pro模型"
+                description="Google Gemini 1.5 Pro"
+            ),
+            ModelInfo(
+                name="gemma-4-26b-a4b-it",
+                display_name="Gemma 4 26B A4B IT",
+                provider=ProviderType.GEMINI,
+                max_tokens=2000000,
+                description="Google Gemma 4 26B A4B IT"
+            ),
+            ModelInfo(
+                name="gemini-3.5-flash-lite",
+                display_name="Gemini 3.5 Flash Lite",
+                provider=ProviderType.GEMINI,
+                max_tokens=2000000,
+                description="Google Gemini 3.5 Flash Lite"
+            ),
+            ModelInfo(
+                name="gemini-3.1-flash-lite",
+                display_name="Gemini 3.1 Flash Lite",
+                provider=ProviderType.GEMINI,
+                max_tokens=2000000,
+                description="Google Gemini 3.1 Flash Lite"
             ),
             ModelInfo(
                 name="gemini-1.5-flash",
                 display_name="Gemini 1.5 Flash",
                 provider=ProviderType.GEMINI,
                 max_tokens=1000000,
-                description="Google Gemini 1.5 Flash模型"
+                description="Google Gemini 1.5 Flash"
             )
         ]
 

@@ -99,7 +99,7 @@ async def parse_youtube_video(
         def extract_info_sync(url, browser):
             # 构建 yt-dlp 命令
             cmd = [
-                '/Users/zhoukk/autoclip/venv/bin/yt-dlp',
+                sys.executable, '-m', 'yt_dlp',
                 '--ignore-config',
                 '--no-warnings',
                 '--no-playlist',
@@ -112,9 +112,8 @@ async def parse_youtube_video(
                 cmd.extend(['--cookies-from-browser', browser.lower()])
 
             # 可选兜底客户端，规避 SABR
-            yt_client = (client or os.getenv('AUTOCLIP_YT_CLIENT', '')).strip().lower()
-            if yt_client in {"android", "ios", "tv"}:
-                cmd.extend(['--extractor-args', f"youtube:player_client={yt_client}"])
+            yt_client = (client or os.getenv('AUTOCLIP_YT_CLIENT', 'android,web')).strip().lower()
+            cmd.extend(['--extractor-args', f"youtube:player_client={yt_client}"])
             
             cmd.append(url)
             
@@ -132,7 +131,7 @@ async def parse_youtube_video(
                     capture_output=True,
                     text=True,
                     timeout=60,
-                    cwd='/Users/zhoukk/autoclip',
+                    cwd=os.getcwd(),
                     env=env
                 )
 
@@ -201,9 +200,8 @@ async def create_youtube_download_task(request: YouTubeDownloadRequest):
             ydl_opts['cookiesfrombrowser'] = (request.browser.lower(),)
 
         # 可选兜底客户端
-        yt_client_env = os.getenv('AUTOCLIP_YT_CLIENT', '').strip().lower()
-        if yt_client_env in {"android", "ios", "tv"}:
-            ydl_opts.setdefault('extractor_args', {}).setdefault('youtube', {}).setdefault('player_client', []).append(yt_client_env)
+        yt_client_env = os.getenv('AUTOCLIP_YT_CLIENT', 'android,web').strip().lower()
+        ydl_opts.setdefault('extractor_args', {}).setdefault('youtube', {}).setdefault('player_client', []).append(yt_client_env)
         
         def extract_info_sync(url, ydl_opts):
             with sanitized_yt_env():
@@ -417,9 +415,8 @@ async def process_youtube_download_task(task_id: str, request: YouTubeDownloadRe
             ydl_opts['cookiesfrombrowser'] = (request.browser.lower(),)
 
         # 可选兜底客户端
-        yt_client_env = os.getenv('AUTOCLIP_YT_CLIENT', '').strip().lower()
-        if yt_client_env in {"android", "ios", "tv"}:
-            ydl_opts.setdefault('extractor_args', {}).setdefault('youtube', {}).setdefault('player_client', []).append(yt_client_env)
+        yt_client_env = os.getenv('AUTOCLIP_YT_CLIENT', 'android,web').strip().lower()
+        ydl_opts.setdefault('extractor_args', {}).setdefault('youtube', {}).setdefault('player_client', []).append(yt_client_env)
         
         def download_sync(url, ydl_opts):
             with sanitized_yt_env():

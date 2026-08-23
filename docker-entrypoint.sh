@@ -10,7 +10,8 @@ export PYTHONPATH=/app
 export PYTHONUNBUFFERED=1
 
 # 确保数据目录存在且有正确权限
-mkdir -p /app/data/projects /app/data/uploads /app/data/temp /app/data/output /app/logs
+mkdir -p /app/data/projects /app/data/uploads /app/data/temp /app/data/output /app/logs /app/uploads
+chmod -R 777 /app/data /app/logs /app/uploads 2>/dev/null || true
 
 # 如果数据目录为空，创建必要的文件
 if [[ ! -f /app/data/autoclip.db ]]; then

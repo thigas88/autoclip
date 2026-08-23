@@ -26,7 +26,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # 第二阶段：构建后端
-FROM python:3.9-slim AS backend-builder
+FROM python:3.11-slim AS backend-builder
 
 # 设置环境变量
 ENV PYTHONUNBUFFERED=1
@@ -50,15 +50,12 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 第三阶段：最终镜像
-FROM python:3.9-slim
+FROM python:3.11-slim
 
 # 设置环境变量
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app
-
-# 创建非root用户
-RUN groupadd -r autoclip && useradd -r -g autoclip autoclip
 
 # 安装运行时依赖
 RUN apt-get update && apt-get install -y \
@@ -71,7 +68,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # 从构建阶段复制文件
-COPY --from=backend-builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
+COPY --from=backend-builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=backend-builder /usr/local/bin /usr/local/bin
 COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
 
@@ -86,16 +83,12 @@ COPY docker-entrypoint.sh ./
 RUN mkdir -p data/projects data/uploads data/temp data/output logs
 
 # 设置权限
-RUN chown -R autoclip:autoclip /app
 RUN chmod +x *.sh
 RUN chmod +x docker-entrypoint.sh
 RUN chmod -R 755 data logs
 
-# 切换到非root用户
-USER autoclip
-
 # 暴露端口
-EXPOSE 8000 3000
+EXPOSE 8000
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
