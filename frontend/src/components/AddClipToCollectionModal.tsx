@@ -93,14 +93,14 @@ const AddClipToCollectionModal: React.FC<AddClipToCollectionModalProps> = ({
 
   return (
     <Modal
-      title="添加切片到合集"
+      title="Adicionar Cortes à Coleção"
       open={visible}
       onCancel={handleCancel}
       width={800}
       className="add-clip-modal"
       footer={[
         <Button key="cancel" onClick={handleCancel}>
-          取消
+          Cancelar
         </Button>,
         <Button 
           key="confirm" 
@@ -108,7 +108,7 @@ const AddClipToCollectionModal: React.FC<AddClipToCollectionModalProps> = ({
           onClick={handleConfirm}
           disabled={selectedClipIds.length === 0}
         >
-          添加 {selectedClipIds.length > 0 && `(${selectedClipIds.length})`}
+          Adicionar {selectedClipIds.length > 0 && `(${selectedClipIds.length})`}
         </Button>
       ]}
     >
@@ -116,7 +116,7 @@ const AddClipToCollectionModal: React.FC<AddClipToCollectionModalProps> = ({
         {/* 搜索和操作栏 */}
         <div className="search-section">
           <Search
-            placeholder="搜索切片标题、内容或推荐理由..."
+            placeholder="Buscar por título, conteúdo ou motivo do corte..."
             prefix={<SearchOutlined />}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
@@ -127,7 +127,7 @@ const AddClipToCollectionModal: React.FC<AddClipToCollectionModalProps> = ({
           <div className="action-bar">
             <Space>
               <Text type="secondary">
-                可添加 {filteredClips.length} 个切片
+                {filteredClips.length} corte(s) disponível(is)
               </Text>
               {filteredClips.length > 0 && (
                 <Button 
@@ -135,7 +135,7 @@ const AddClipToCollectionModal: React.FC<AddClipToCollectionModalProps> = ({
                   size="small"
                   onClick={handleSelectAll}
                 >
-                  {selectedClipIds.length === filteredClips.length ? '取消全选' : '全选'}
+                  {selectedClipIds.length === filteredClips.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
                 </Button>
               )}
             </Space>
@@ -164,7 +164,7 @@ const AddClipToCollectionModal: React.FC<AddClipToCollectionModalProps> = ({
                       
                       <div className="clip-info">
                         <div className="clip-title">
-                          {clip.title || clip.generated_title}
+                          {clip.title || clip.generated_title || 'Corte sem título'}
                         </div>
                         
                         <div className="clip-meta">
@@ -180,7 +180,7 @@ const AddClipToCollectionModal: React.FC<AddClipToCollectionModalProps> = ({
                                 border: 'none'
                               }}
                             >
-                              分数: {(clip.final_score * 100).toFixed(0)}
+                              Pontuação: {(clip.final_score * 100).toFixed(0)}
                             </Tag>
                           </Space>
                         </div>
@@ -196,7 +196,7 @@ const AddClipToCollectionModal: React.FC<AddClipToCollectionModalProps> = ({
                         {clip.content && clip.content.length > 0 && (
                           <div className="clip-content">
                             <Text type="secondary" style={{ fontSize: '11px' }}>
-                              {clip.content.slice(0, 2).join('、')}
+                              {clip.content.slice(0, 2).join(', ')}
                               {clip.content.length > 2 && '...'}
                             </Text>
                           </div>
@@ -213,8 +213,8 @@ const AddClipToCollectionModal: React.FC<AddClipToCollectionModalProps> = ({
                 image={<PlayCircleOutlined style={{ fontSize: '48px', color: '#d9d9d9' }} />}
                 description={
                   availableClips.length === 0 
-                    ? "所有切片都已在合集中" 
-                    : "没有找到匹配的切片"
+                    ? "Todos os cortes já estão nesta coleção" 
+                    : "Nenhum corte correspondente encontrado"
                 }
               />
             </div>

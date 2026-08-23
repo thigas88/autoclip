@@ -96,7 +96,7 @@ const ProjectDetailPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to load project:', error)
-      message.error('加载项目失败')
+      message.error('Falha ao carregar projeto')
     }
   }
 
@@ -116,11 +116,11 @@ const ProjectDetailPage: React.FC = () => {
     if (!id) return
     try {
       await projectApi.startProcessing(id)
-      message.success('开始处理')
+      message.success('Processamento iniciado')
       loadProcessingStatus()
     } catch (error) {
       console.error('Failed to start processing:', error)
-      message.error('启动处理失败')
+      message.error('Falha ao iniciar processamento')
     }
   }
 
@@ -136,10 +136,10 @@ const ProjectDetailPage: React.FC = () => {
         created_at: new Date().toISOString()
       })
       setShowCreateCollection(false)
-      message.success('合集创建成功')
+      message.success('Coleção criada com sucesso')
     } catch (error) {
       console.error('Failed to create collection:', error)
-      message.error('创建合集失败')
+      message.error('Falha ao criar coleção')
     }
   }
 
@@ -152,10 +152,10 @@ const ProjectDetailPage: React.FC = () => {
     if (!id) return
     try {
       await removeClipFromCollection(id, collectionId, clipId)
-      message.success('切片已从合集中移除')
+      message.success('Corte removido da coleção')
     } catch (error) {
       console.error('Failed to remove clip from collection:', error)
-      message.error('移除切片失败')
+      message.error('Falha ao remover corte')
     }
   }
 
@@ -165,10 +165,10 @@ const ProjectDetailPage: React.FC = () => {
       await deleteCollection(id, collectionId)
       setShowCollectionDetail(false)
       setSelectedCollection(null)
-      message.success('合集已删除')
+      message.success('Coleção excluída com sucesso')
     } catch (error) {
       console.error('Failed to delete collection:', error)
-      message.error('删除合集失败')
+      message.error('Falha ao excluir coleção')
     }
   }
 
@@ -176,10 +176,10 @@ const ProjectDetailPage: React.FC = () => {
     if (!id) return
     try {
       await reorderCollectionClips(id, collectionId, newClipIds)
-      message.success('合集顺序已更新')
+      message.success('Ordem da coleção atualizada')
     } catch (error) {
       console.error('Failed to reorder collection clips:', error)
-      message.error('更新合集顺序失败')
+      message.error('Falha ao atualizar ordem da coleção')
     }
   }
 
@@ -187,10 +187,10 @@ const ProjectDetailPage: React.FC = () => {
     if (!id) return
     try {
       await addClipToCollection(id, collectionId, clipIds)
-      message.success('切片已添加到合集')
+      message.success('Cortes adicionados à coleção')
     } catch (error) {
       console.error('Failed to add clip to collection:', error)
-      message.error('添加切片失败')
+      message.error('Falha ao adicionar cortes à coleção')
     }
   }
 
@@ -201,7 +201,6 @@ const ProjectDetailPage: React.FC = () => {
     if (sortBy === 'score') {
       return clips.sort((a, b) => b.final_score - a.final_score)
     } else {
-      // 按时间排序 - 将时间字符串转换为秒数进行比较
       return clips.sort((a, b) => {
         const getTimeInSeconds = (timeStr: string) => {
           const parts = timeStr.split(':')
@@ -230,12 +229,12 @@ const ProjectDetailPage: React.FC = () => {
     return (
       <Content style={{ padding: '24px' }}>
         <Alert
-          message="加载失败"
-          description={error || '项目不存在'}
+          message="Falha ao carregar"
+          description={error || 'Projeto não encontrado'}
           type="error"
           action={
             <Button size="small" onClick={() => navigate('/')}>
-              返回首页
+              Voltar ao Início
             </Button>
           }
         />
@@ -254,7 +253,7 @@ const ProjectDetailPage: React.FC = () => {
             onClick={() => navigate('/')}
             style={{ padding: 0, marginBottom: '8px' }}
           >
-            返回项目列表
+            Voltar para lista de projetos
           </Button>
           <Title level={2} style={{ margin: 0 }}>
             {currentProject.name}
@@ -268,7 +267,7 @@ const ProjectDetailPage: React.FC = () => {
               onClick={handleStartProcessing}
               loading={statusLoading}
             >
-              开始处理
+              Iniciar Processamento
             </Button>
           )}
         </Space>
@@ -282,9 +281,9 @@ const ProjectDetailPage: React.FC = () => {
             <Card style={{ marginBottom: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <div>
-                  <Title level={4} style={{ margin: 0 }}>AI推荐合集</Title>
+                  <Title level={4} style={{ margin: 0 }}>Coleções Recomendadas por IA</Title>
                   <Text type="secondary">
-                    AI 已为您推荐了 {currentProject.collections.length} 个主题合集
+                    A IA recomendou {currentProject.collections.length} coleções temáticas para este vídeo
                   </Text>
                 </div>
                 <Button 
@@ -301,7 +300,7 @@ const ProjectDetailPage: React.FC = () => {
                     fontSize: '14px'
                   }}
                 >
-                  创建合集
+                  Criar Coleção
                 </Button>
               </div>
               
@@ -316,7 +315,6 @@ const ProjectDetailPage: React.FC = () => {
               >
                 {currentProject.collections
                   .sort((a, b) => {
-                    // 按创建时间倒序排列，最新的在前面
                     const timeA = a.created_at ? new Date(a.created_at).getTime() : 0
                     const timeB = b.created_at ? new Date(b.created_at).getTime() : 0
                     return timeB - timeA
@@ -357,16 +355,15 @@ const ProjectDetailPage: React.FC = () => {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
               <div>
-                <Title level={4} style={{ margin: 0, color: '#ffffff', fontWeight: 600 }}>视频片段</Title>
+                <Title level={4} style={{ margin: 0, color: '#ffffff', fontWeight: 600 }}>Cortes do Vídeo</Title>
                 <Text type="secondary" style={{ color: 'var(--ac-sub)', fontSize: '14px' }}>
-                  AI 已为您生成了 {currentProject.clips?.length || 0} 个精彩片段
+                  A IA gerou {currentProject.clips?.length || 0} cortes destacados
                 </Text>
               </div>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                {/* 排序控件 - 暗黑主题优化 */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <Text style={{ fontSize: '13px', color: 'var(--ac-sub)', fontWeight: 500 }}>排序</Text>
+                  <Text style={{ fontSize: '13px', color: 'var(--ac-sub)', fontWeight: 500 }}>Ordenar por</Text>
                   <Radio.Group
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
@@ -395,7 +392,7 @@ const ProjectDetailPage: React.FC = () => {
                          transition: 'all 0.2s ease'
                        }}
                      >
-                       时间
+                       Tempo
                      </Radio.Button>
                      <Radio.Button 
                        value="score" 
@@ -414,7 +411,7 @@ const ProjectDetailPage: React.FC = () => {
                          transition: 'all 0.2s ease'
                        }}
                      >
-                       评分
+                       Pontuação
                      </Radio.Button>
                   </Radio.Group>
                 </div>
@@ -435,7 +432,7 @@ const ProjectDetailPage: React.FC = () => {
                         fontSize: '14px'
                       }}
                     >
-                      创建合集
+                      Criar Coleção
                     </Button>
                   )}
                 </Space>
@@ -459,7 +456,6 @@ const ProjectDetailPage: React.FC = () => {
                     videoUrl={projectApi.getClipVideoUrl(currentProject.id, clip.id, clip.title || clip.generated_title)}
                     onDownload={(clipId) => projectApi.downloadVideo(currentProject.id, clipId)}
                     onClipUpdate={(clipId: string, updates: Partial<Clip>) => {
-                      // 更新本地状态
                       if (currentProject) {
                         const updatedProject = {
                           ...currentProject,
@@ -483,7 +479,7 @@ const ProjectDetailPage: React.FC = () => {
               }}>
                 <Empty 
                   description={
-                    <Text style={{ color: '#888', fontSize: '14px' }}>暂无视频片段</Text>
+                    <Text style={{ color: '#888', fontSize: '14px' }}>Nenhum corte encontrado</Text>
                   }
                   image={<PlayCircleOutlined style={{ fontSize: '48px', color: '#555' }} />}
                 />
@@ -505,9 +501,9 @@ const ProjectDetailPage: React.FC = () => {
               image={<PlayCircleOutlined style={{ fontSize: '64px', color: '#d9d9d9' }} />}
               description={
                 <div>
-                  <Text>项目还未完成处理</Text>
+                  <Text>O projeto ainda está sendo processado</Text>
                   <br />
-                  <Text type="secondary">处理完成后可查看视频片段和AI合集</Text>
+                  <Text type="secondary">Assim que concluído, os cortes e coleções da IA aparecerão aqui</Text>
                 </div>
               }
             />

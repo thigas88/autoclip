@@ -165,12 +165,12 @@ export const useSimpleProgressStore = create<SimpleProgressState>((set, get) => 
 
 // 阶段显示名称映射
 export const STAGE_DISPLAY_NAMES: Record<string, string> = {
-  'INGEST': '素材准备',
-  'SUBTITLE': '字幕处理',
-  'ANALYZE': '内容分析', 
-  'HIGHLIGHT': '片段定位',
-  'EXPORT': '视频导出',
-  'DONE': '处理完成'
+  'INGEST': 'Preparando mídia',
+  'SUBTITLE': 'Processamento de legendas',
+  'ANALYZE': 'Análise de conteúdo', 
+  'HIGHLIGHT': 'Identificando destaques',
+  'EXPORT': 'Exportação de vídeo',
+  'DONE': 'Concluído'
 }
 
 // 阶段颜色映射
@@ -200,5 +200,7 @@ export const isCompleted = (stage: string): boolean => {
 
 // 判断是否为失败状态
 export const isFailed = (message: string): boolean => {
-  return message.includes('失败') || message.includes('错误') || message.includes('失败')
+  if (!message) return false
+  const lower = message.toLowerCase()
+  return lower.includes('fail') || lower.includes('error') || lower.includes('falha') || lower.includes('erro') || message.includes('失败') || message.includes('错误')
 }

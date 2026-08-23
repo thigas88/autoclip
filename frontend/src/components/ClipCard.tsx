@@ -63,7 +63,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
       await onDownload(clip.id)
     } catch (error) {
       console.error('下载失败:', error)
-      message.error('下载失败')
+      message.error('Falha no download')
     }
   }
 
@@ -128,10 +128,8 @@ const ClipCard: React.FC<ClipCardProps> = ({
     
     // 如果没有推荐理由，尝试从content中获取非转写文本的内容要点
     if (clip.content && Array.isArray(clip.content) && clip.content.length > 0) {
-      // 过滤掉可能是转写文本的内容（通常转写文本很长且包含标点符号）
       const contentPoints = clip.content.filter(item => {
         const text = item.trim()
-        // 如果文本长度超过100字符或包含大量标点符号，可能是转写文本
         if (text.length > 100) return false
         if (text.split(/[，。！？；：""''（）【】]/).length > 3) return false
         return true
@@ -147,7 +145,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
       return clip.outline
     }
     
-    return '暂无内容要点'
+    return 'Sem descrição detalhada'
   }
 
   const textRef = useRef<HTMLDivElement>(null)
@@ -291,7 +289,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
                 alignItems: 'flex-start'
               }}>
                 <EditableTitle
-                  title={clip.title || clip.generated_title || '未命名片段'}
+                  title={clip.title || clip.generated_title || 'Corte sem título'}
                   clipId={clip.id}
                   onTitleUpdate={handleTitleUpdate}
                   style={{ 
@@ -362,7 +360,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
                   background: 'transparent'
                 }}
               >
-                播放
+                Assistir
               </Button>
               <Button
                 type="text"
@@ -379,24 +377,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
                   background: 'transparent'
                 }}
               >
-                下载
-              </Button>
-              <Button
-                type="text"
-                size="small"
-                icon={<UploadOutlined />}
-                onClick={() => message.info('开发中，敬请期待', 3)}
-                style={{
-                  color: 'var(--ac-sub)',
-                  border: '1px solid var(--ac-line)',
-                  borderRadius: '999px',
-                  fontSize: '12px',
-                  height: '28px',
-                  padding: '0 14px',
-                  background: 'transparent'
-                }}
-              >
-                投稿
+                Baixar
               </Button>
             </div>
           </div>
@@ -408,15 +389,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
         onCancel={handleClosePlayer}
         footer={[
           <Button key="download" type="primary" icon={<DownloadOutlined />} onClick={handleDownloadWithTitle}>
-            下载视频
-          </Button>,
-          <Button 
-            key="upload" 
-            type="default" 
-            icon={<UploadOutlined />} 
-            onClick={() => message.info('开发中，敬请期待', 3)}
-          >
-            投稿到B站
+            Baixar Vídeo
           </Button>
         ]}
         width={800}
@@ -436,15 +409,13 @@ const ClipCard: React.FC<ClipCardProps> = ({
             display: 'flex', 
             alignItems: 'center', 
             width: '100%',
-            paddingRight: '30px' // 为关闭按钮留出空间
+            paddingRight: '30px'
           }}>
             <EditableTitle
-              title={clip.title || clip.generated_title || '视频预览'}
+              title={clip.title || clip.generated_title || 'Visualização do Vídeo'}
               clipId={clip.id}
               onTitleUpdate={(newTitle) => {
-                // 更新clip的标题
-                console.log('播放器标题已更新:', newTitle)
-                // 这里可以触发父组件的更新回调
+                console.log('Player title updated:', newTitle)
                 if (onClipUpdate) {
                   onClipUpdate(clip.id, { title: newTitle })
                 }

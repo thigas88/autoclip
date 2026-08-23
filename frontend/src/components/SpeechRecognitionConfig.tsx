@@ -55,42 +55,42 @@ const SpeechRecognitionConfig: React.FC<SpeechRecognitionConfigProps> = () => {
   const handleInstall = async () => {
     try {
       const r = await speechApi.installRuntime()
-      message.info(r.message || '已开始安装')
+      message.info(r.message || 'Instalação iniciada')
       setRuntime((p) => (p ? { ...p, status: 'installing', progress: 5 } : p))
       refresh()
     } catch (e: any) {
-      message.error(e?.response?.data?.detail || '安装失败')
+      message.error(e?.response?.data?.detail || 'Falha na instalação')
     }
   }
 
   const handleUninstall = async () => {
     try {
       const r = await speechApi.uninstallRuntime()
-      message.success(r.message || '已卸载')
+      message.success(r.message || 'Desinstalado com sucesso')
       refresh()
     } catch (e: any) {
-      message.error('卸载失败')
+      message.error('Falha na desinstalação')
     }
   }
 
   const handleDownload = async (model: string) => {
     try {
       await speechApi.downloadModel(model)
-      message.info(`开始下载模型 ${model}`)
+      message.info(`Iniciando download do modelo ${model}`)
       setModels((prev) => prev.map((m) => (m.name === model ? { ...m, status: 'downloading' } : m)))
       refresh()
     } catch (e: any) {
-      message.error(e?.response?.data?.detail || '下载失败')
+      message.error(e?.response?.data?.detail || 'Falha no download')
     }
   }
 
   const handleDelete = async (model: string) => {
     try {
       await speechApi.deleteModel(model)
-      message.success(`已删除模型 ${model}`)
+      message.success(`Modelo ${model} excluído`)
       refresh()
     } catch (e) {
-      message.error('删除失败')
+      message.error('Falha ao excluir modelo')
     }
   }
 
@@ -105,33 +105,33 @@ const SpeechRecognitionConfig: React.FC<SpeechRecognitionConfigProps> = () => {
       <Alert
         type="info"
         showIcon
-        message="什么时候需要 Whisper？"
-        description="当导入的视频自带字幕（例如 B站 的 AI 字幕）时，会直接使用现成字幕，无需 Whisper。只有当视频没有字幕时，才需要本地 Whisper 来自动转写生成字幕。Whisper 为按需安装，装不装、装哪个模型都由你决定。"
+        message="Quando o Whisper é necessário?"
+        description="Quando o vídeo importado já possui legendas embutidas ou automáticas, elas serão utilizadas diretamente. O Whisper local é necessário apenas para vídeos sem legendas, convertendo o áudio em texto com IA."
       />
 
       {!supported && (
-        <Alert type="warning" showIcon message="当前平台不支持"
-          description="mlx-whisper 仅支持 Apple Silicon (M 系列) Mac。" />
+        <Alert type="warning" showIcon message="Plataforma não suportada"
+          description="mlx-whisper suporta apenas Macs com chip Apple Silicon (série M)." />
       )}
 
       {/* 运行时 */}
-      <Card size="small" title={<Space><ThunderboltOutlined />Whisper 运行时</Space>}>
+      <Card size="small" title={<Space><ThunderboltOutlined />Ambiente de Execução Whisper</Space>}>
         {installed && (
           <Space direction="vertical" style={{ width: '100%' }}>
             <Space>
               <CheckCircleFilled style={{ color: '#52c41a' }} />
-              <Text strong>已安装</Text>
-              <Text type="secondary">（{(runtime?.packages || []).join(', ')}）</Text>
+              <Text strong>Instalado</Text>
+              <Text type="secondary">({(runtime?.packages || []).join(', ')})</Text>
             </Space>
-            <Popconfirm title="卸载 Whisper 运行时？已下载的模型不会被删除。" onConfirm={handleUninstall} okText="卸载" cancelText="取消">
-              <Button danger size="small" icon={<DeleteOutlined />}>卸载运行时</Button>
+            <Popconfirm title="Desinstalar o ambiente Whisper? Os modelos baixados serão preservados." onConfirm={handleUninstall} okText="Desinstalar" cancelText="Cancelar">
+              <Button danger size="small" icon={<DeleteOutlined />}>Desinstalar Ambiente</Button>
             </Popconfirm>
           </Space>
         )}
 
         {installing && (
           <Space direction="vertical" style={{ width: '100%' }}>
-            <Text>正在安装… {runtime?.message}</Text>
+            <Text>Instalando… {runtime?.message}</Text>
             <Progress percent={runtime?.progress ?? 5} status="active" />
             {runtime?.log_tail && (
               <pre style={{ maxHeight: 120, overflow: 'auto', background: '#1a1a1a', color: '#bbb', padding: 8, fontSize: 11, borderRadius: 4, margin: 0 }}>
@@ -144,26 +144,26 @@ const SpeechRecognitionConfig: React.FC<SpeechRecognitionConfigProps> = () => {
         {runtime?.status === 'not_installed' && (
           <Space direction="vertical" style={{ width: '100%' }}>
             <Paragraph type="secondary" style={{ marginBottom: 8 }}>
-              尚未安装。安装会下载 faster-whisper 运行时（约 200–400MB，不含 PyTorch），完成后再选择并下载一个模型即可使用。
+              Não instalado. A instalação baixará o pacote faster-whisper (cerca de 200–400MB). Em seguida, selecione e baixe um modelo abaixo para começar.
             </Paragraph>
             <Button type="primary" icon={<DownloadOutlined />} onClick={handleInstall} disabled={!supported}>
-              安装 Whisper
+              Instalar Whisper
             </Button>
           </Space>
         )}
 
         {runtime?.status === 'error' && (
           <Space direction="vertical" style={{ width: '100%' }}>
-            <Alert type="error" showIcon message="安装出错" description={runtime?.message} />
-            <Button icon={<ReloadOutlined />} onClick={handleInstall} disabled={!supported}>重试安装</Button>
+            <Alert type="error" showIcon message="Erro na instalação" description={runtime?.message} />
+            <Button icon={<ReloadOutlined />} onClick={handleInstall} disabled={!supported}>Tentar Novamente</Button>
           </Space>
         )}
       </Card>
 
       {/* 模型 */}
-      <Card size="small" title="Whisper 模型">
+      <Card size="small" title="Modelos Whisper">
         {!installed && (
-          <Text type="secondary">请先安装 Whisper 运行时，然后在这里下载模型。</Text>
+          <Text type="secondary">Instale primeiro o ambiente Whisper para gerenciar e baixar os modelos.</Text>
         )}
         {installed && (
           <List
@@ -175,14 +175,14 @@ const SpeechRecognitionConfig: React.FC<SpeechRecognitionConfigProps> = () => {
                 <List.Item
                   actions={[
                     downloaded ? (
-                      <Popconfirm title={`删除模型 ${m.name}？`} onConfirm={() => handleDelete(m.name)} okText="删除" cancelText="取消">
-                        <Button size="small" danger icon={<DeleteOutlined />}>删除</Button>
+                      <Popconfirm title={`Excluir modelo ${m.name}?`} onConfirm={() => handleDelete(m.name)} okText="Excluir" cancelText="Cancelar">
+                        <Button size="small" danger icon={<DeleteOutlined />}>Excluir</Button>
                       </Popconfirm>
                     ) : downloading ? (
-                      <Button size="small" loading disabled>下载中</Button>
+                      <Button size="small" loading disabled>Baixando</Button>
                     ) : (
                       <Button size="small" type="primary" icon={<DownloadOutlined />} onClick={() => handleDownload(m.name)}>
-                        下载
+                        Baixar
                       </Button>
                     ),
                   ]}
@@ -192,9 +192,9 @@ const SpeechRecognitionConfig: React.FC<SpeechRecognitionConfigProps> = () => {
                       <Space>
                         <Text strong>{m.name}</Text>
                         <Text type="secondary">{m.size}</Text>
-                        {downloaded && <Tag color="green">已下载</Tag>}
-                        <Tag color={accuracyColor[m.accuracy] || 'default'}>准确度 {m.accuracy}</Tag>
-                        <Tooltip title="速度"><Tag>{m.speed}</Tag></Tooltip>
+                        {downloaded && <Tag color="green">Baixado</Tag>}
+                        <Tag color={accuracyColor[m.accuracy] || 'default'}>Precisão: {m.accuracy}</Tag>
+                        <Tooltip title="Velocidade"><Tag>{m.speed}</Tag></Tooltip>
                       </Space>
                     }
                     description={

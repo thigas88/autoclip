@@ -128,7 +128,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
               gap: '4px'
             }}
           >
-            {collection.collection_type === 'ai_recommended' ? 'AI 推荐' : '手动创建'}
+            {collection.collection_type === 'ai_recommended' ? 'Recomendado por IA' : 'Manual'}
           </div>
           
           {/* 左下角片段数量 */}
@@ -148,7 +148,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
               gap: '4px'
             }}
           >
-            {collectionClips.length} 个片段
+            {collectionClips.length} cortes
           </div>
           
           {/* 右下角总时长 */}
@@ -226,7 +226,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
             alignItems: 'flex-start'
           }}>
             <Tooltip 
-              title={collection.collection_summary || '暂无描述'} 
+              title={collection.collection_summary || 'Sem descrição'} 
               placement="top" 
               overlayStyle={{ maxWidth: '300px' }}
               mouseEnterDelay={0.5}
@@ -246,7 +246,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                   width: '100%'
                 }}
               >
-                {collection.collection_summary || '暂无描述'}
+                {collection.collection_summary || 'Sem descrição'}
               </div>
             </Tooltip>
           </div>
@@ -275,7 +275,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
               background: 'transparent'
             }}
           >
-            播放
+            Assistir
           </Button>
           {onGenerateVideo && (
             <Button 
@@ -293,26 +293,9 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                 background: 'transparent'
               }}
             >
-              下载
+              Baixar
             </Button>
           )}
-          <Button 
-            type="text" 
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => message.info('开发中，敬请期待', 3)}
-            style={{
-              color: 'var(--ac-sub)',
-              border: '1px solid var(--ac-line)',
-              borderRadius: '6px',
-              fontSize: '12px',
-              height: '28px',
-              padding: '0 12px',
-              background: 'transparent'
-            }}
-          >
-            投稿
-          </Button>
         </div>
       </div>
     </Card>

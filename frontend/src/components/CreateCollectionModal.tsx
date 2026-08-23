@@ -81,8 +81,8 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
             <PlusOutlined />
           </div>
           <div className="header-text">
-            <Title level={3} className="modal-title">创建新合集</Title>
-            <Text className="modal-subtitle">将精选片段组合成一个主题合集</Text>
+            <Title level={3} className="modal-title">Criar Nova Coleção</Title>
+            <Text className="modal-subtitle">Agrupe cortes selecionados em uma coleção temática</Text>
           </div>
         </div>
 
@@ -94,11 +94,11 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
           <div className="form-item">
             <div className="form-label">
               <TagOutlined className="label-icon" />
-              <Text strong>合集标题</Text>
+              <Text strong>Título da Coleção</Text>
               <span className="required-mark">*</span>
             </div>
             <Input
-              placeholder="请输入合集标题"
+              placeholder="Digite o título da coleção"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="form-input"
@@ -111,10 +111,10 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
           <div className="form-item">
             <div className="form-label">
               <FileTextOutlined className="label-icon" />
-              <Text strong>合集描述</Text>
+              <Text strong>Descrição da Coleção</Text>
             </div>
             <TextArea
-              placeholder="请输入合集描述（可选）"
+              placeholder="Digite a descrição da coleção (opcional)"
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
               className="form-textarea"
@@ -128,14 +128,14 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
           <div className="form-item">
             <div className="form-label">
               <VideoCameraOutlined className="label-icon" />
-              <Text strong>选择片段</Text>
+              <Text strong>Selecionar Cortes</Text>
               <span className="required-mark">*</span>
             </div>
             
             <div className="clips-selection">
               <div className="selection-header">
                 <Text className="selection-info">
-                  已选择 {selectedClips.length} 个片段
+                  {selectedClips.length} corte(s) selecionado(s)
                 </Text>
                 <div className="selection-actions">
                   <Button 
@@ -144,7 +144,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
                     onClick={selectAllClips}
                     className="action-btn"
                   >
-                    全选
+                    Selecionar Todos
                   </Button>
                   <Button 
                     type="link" 
@@ -152,7 +152,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
                     onClick={clearAllClips}
                     className="action-btn"
                   >
-                    清空
+                    Limpar
                   </Button>
                 </div>
               </div>
@@ -171,11 +171,11 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
                     />
                     <div className="clip-content">
                       <div className="clip-title">
-                        {clip.generated_title || clip.title || '未命名片段'}
+                        {clip.generated_title || clip.title || 'Corte sem título'}
                       </div>
                       <div className="clip-meta">
                         <Text type="secondary" style={{ fontSize: '12px' }}>
-                          {clip.start_time} - {clip.end_time} • 评分: {(clip.final_score * 100).toFixed(0)}
+                          {clip.start_time} - {clip.end_time} • Pontuação: {(clip.final_score * 100).toFixed(0)}
                         </Text>
                       </div>
                     </div>
@@ -189,7 +189,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
         {/* 底部操作 */}
         <div className="modal-footer">
           <Button onClick={handleCancel} className="cancel-btn">
-            取消
+            Cancelar
           </Button>
           <Button 
             type="primary" 
@@ -198,7 +198,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
             loading={loading}
             className="create-btn"
           >
-            创建合集
+            Criar Coleção
           </Button>
         </div>
       </div>
