@@ -54,6 +54,14 @@ const SettingsPage: React.FC = () => {
       description: 'Serviço de modelos SiliconFlow',
       apiKeyField: 'siliconflow_api_key',
       placeholder: 'Insira sua chave de API SiliconFlow'
+    },
+    custom: {
+      name: 'OpenAI Compatible (Custom)',
+      icon: <ApiOutlined />,
+      color: '#13c2c2',
+      description: 'Qualquer API compatível com OpenAI',
+      apiKeyField: 'custom_api_key',
+      placeholder: 'Insira a chave de API do seu provider'
     }
   }
 
@@ -101,6 +109,9 @@ const SettingsPage: React.FC = () => {
           openai_api_key: settingsData.api?.api_keys?.openai || '',
           gemini_api_key: settingsData.api?.api_keys?.gemini || '',
           siliconflow_api_key: settingsData.api?.api_keys?.siliconflow || '',
+          custom_api_key: settingsData.api?.api_keys?.custom || '',
+          custom_base_url: settingsData.api?.custom_base_url || '',
+          custom_api_style: settingsData.api?.custom_api_style || 'openai',
           jimeng_access_key: settingsData.api?.api_keys?.jimeng_access || '',
           jimeng_secret_key: settingsData.api?.api_keys?.jimeng_secret || '',
           model_name: settingsData.api?.api_model || 'qwen-plus',
@@ -118,6 +129,9 @@ const SettingsPage: React.FC = () => {
           openai_api_key: '',
           gemini_api_key: '',
           siliconflow_api_key: '',
+          custom_api_key: '',
+          custom_base_url: '',
+          custom_api_style: 'openai',
           jimeng_access_key: '',
           jimeng_secret_key: '',
           model_name: 'qwen-plus',
@@ -181,12 +195,15 @@ const SettingsPage: React.FC = () => {
             openai: values.openai_api_key || existingApiKeys.openai || "",
             gemini: values.gemini_api_key || existingApiKeys.gemini || "",
             siliconflow: values.siliconflow_api_key || existingApiKeys.siliconflow || "",
+            custom: values.custom_api_key || existingApiKeys.custom || "",
             jimeng_access: values.jimeng_access_key || existingApiKeys.jimeng_access || "",
             jimeng_secret: values.jimeng_secret_key || existingApiKeys.jimeng_secret || ""
           },
           api_model: values.model_name || "qwen-plus",
           api_max_tokens: 4096,
-          api_timeout: 30
+          api_timeout: 30,
+          custom_base_url: values.custom_base_url || "",
+          custom_api_style: values.custom_api_style || "openai"
         },
         processing: {
           processing_chunk_size: values.chunk_size || 5000,
@@ -235,7 +252,15 @@ const SettingsPage: React.FC = () => {
 
     try {
       setLoading(true)
-      const result = await settingsApi.testApiKey(selectedProvider, apiKey)
+      // model_name usa mode="tags" (array); envia apenas a primeira string para o backend
+      const rawModel = form.getFieldValue('model_name')
+      const modelName = Array.isArray(rawModel) ? (rawModel[0] || '') : (rawModel || '')
+      const options = selectedProvider === 'custom' ? {
+        base_url: form.getFieldValue('custom_base_url'),
+        api_style: form.getFieldValue('custom_api_style'),
+        model_name: modelName
+      } : undefined
+      const result = await settingsApi.testApiKey(selectedProvider, apiKey, options)
       if (result.success) {
         message.success('Teste de conexão com a API realizado com sucesso!')
       } else {
@@ -336,6 +361,37 @@ const SettingsPage: React.FC = () => {
                     className="settings-input"
                   />
                 </Form.Item>
+
+                {/* Custom Provider Fields */}
+                {selectedProvider === 'custom' && (
+                  <>
+                    <Form.Item
+                      label="Base URL"
+                      name="custom_base_url"
+                      className="form-item"
+                      rules={[{ required: true, message: 'Insira a URL base da API' }]}
+                      extra="Ex: https://api.openai.com/v1"
+                    >
+                      <Input
+                        placeholder="https://api.openai.com/v1"
+                        prefix={<ApiOutlined />}
+                        className="settings-input"
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      label="API Style"
+                      name="custom_api_style"
+                      className="form-item"
+                      initialValue="openai"
+                    >
+                      <Select className="settings-input">
+                        <Select.Option value="openai">OpenAI</Select.Option>
+                        <Select.Option value="anthropic">Anthropic</Select.Option>
+                      </Select>
+                    </Form.Item>
+                  </>
+                )}
 
                 {/* 模型选择 */}
                 <Form.Item

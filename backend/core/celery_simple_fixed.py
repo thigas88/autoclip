@@ -16,9 +16,9 @@ celery_app.conf.update(
     accept_content=['json'],
     result_serializer='json',
     
-    # Redis配置
-    broker_url='redis://localhost:6379/0',
-    result_backend='redis://localhost:6379/0',
+    # Redis配置 - prioriza variável de ambiente do container
+    broker_url=os.getenv('REDIS_URL') or os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0'),
+    result_backend=os.getenv('REDIS_URL') or os.getenv('CELERY_RESULT_BACKEND', 'redis://redis:6379/0'),
     
     # Broker配置
     broker_transport='redis',

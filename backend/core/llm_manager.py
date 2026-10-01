@@ -69,17 +69,21 @@ class LLMManager:
             "openai_api_key": "",
             "gemini_api_key": "",
             "siliconflow_api_key": "",
+            "custom_api_key": "",
+            "custom_base_url": "",
+            "custom_api_style": "openai",
             "model_name": "qwen-plus",
             "chunk_size": 5000,
             "min_score_threshold": 0.7,
             "max_clips_per_collection": 5
         }
-        
+
+        # 1. Try to load from settings file
         if self.settings_file.exists():
             try:
                 with open(self.settings_file, 'r', encoding='utf-8') as f:
                     saved_settings = json.load(f)
-                    
+
                     # 处理新的配置格式（客户端配置）
                     if "api" in saved_settings and "api_keys" in saved_settings["api"]:
                         api_keys = saved_settings["api"]["api_keys"]
@@ -88,15 +92,38 @@ class LLMManager:
                             "openai_api_key": api_keys.get("openai", ""),
                             "gemini_api_key": api_keys.get("gemini", ""),
                             "siliconflow_api_key": api_keys.get("siliconflow", ""),
-                            "model_name": saved_settings["api"].get("api_model", "qwen-plus")
+                            "custom_api_key": api_keys.get("custom", ""),
+                            "custom_base_url": saved_settings["api"].get("custom_base_url", ""),
+                            "custom_api_style": saved_settings["api"].get("custom_api_style", "openai"),
+                            "model_name": saved_settings["api"].get("api_model", "qwen-plus"),
+                            "llm_provider": saved_settings["api"].get("api_provider", "dashscope")
                         })
                     else:
                         # 处理旧的配置格式（直接平铺）
                         default_settings.update(saved_settings)
-                        
+
             except Exception as e:
                 logger.warning(f"加载设置文件失败: {e}")
-        
+
+        # 2. Fallback to Environment Variables (crucial for Docker)
+        # Only override if env var is present and non-empty
+        env_mapping = {
+            "DASHSCOPE_API_KEY": "dashscope_api_key",
+            "OPENAI_API_KEY": "openai_api_key",
+            "GEMINI_API_KEY": "gemini_api_key",
+            "SILICONFLOW_API_KEY": "siliconflow_api_key",
+            "CUSTOM_API_KEY": "custom_api_key",
+            "CUSTOM_BASE_URL": "custom_base_url",
+            "LLM_PROVIDER": "llm_provider",
+            "MODEL_NAME": "model_name"
+        }
+
+        for env_key, setting_key in env_mapping.items():
+            env_val = os.getenv(env_key)
+            if env_val:
+                default_settings[setting_key] = env_val
+                logger.info(f"Loaded {setting_key} from environment variable")
+
         return default_settings
     
     def _save_settings(self):
@@ -114,23 +141,35 @@ class LLMManager:
         try:
             provider_type = ProviderType(self.settings.get("llm_provider", "dashscope"))
             model_name = self.settings.get("model_name", "qwen-plus")
-            
+
             # 获取对应提供商的API密钥
             api_key = self._get_api_key_for_provider(provider_type)
-            
-            
+
             if api_key:
-                self.current_provider = LLMProviderFactory.create_provider(
-                    provider_type, api_key, model_name
-                )
+                # Custom provider requires base_url and api_style
+                if provider_type == ProviderType.CUSTOM:
+                    base_url = self.settings.get("custom_base_url", "")
+                    api_style = self.settings.get("custom_api_style", "openai")
+                    if not base_url:
+                        logger.warning("Custom provider selected but no base_url configured")
+                        self.current_provider = None
+                        return
+                    self.current_provider = LLMProviderFactory.create_provider(
+                        provider_type, api_key, model_name,
+                        base_url=base_url, api_style=api_style
+                    )
+                else:
+                    self.current_provider = LLMProviderFactory.create_provider(
+                        provider_type, api_key, model_name
+                    )
                 logger.info(f"已初始化{provider_type.value}提供商，模型: {model_name}")
             else:
                 logger.warning(f"未找到{provider_type.value}的API密钥")
-                
+
         except Exception as e:
             logger.error(f"初始化提供商失败: {e}")
             self.current_provider = None
-    
+
     def _get_api_key_for_provider(self, provider_type: ProviderType) -> Optional[str]:
         """获取指定提供商的API密钥"""
         key_mapping = {
@@ -138,8 +177,9 @@ class LLMManager:
             ProviderType.OPENAI: "openai_api_key",
             ProviderType.GEMINI: "gemini_api_key",
             ProviderType.SILICONFLOW: "siliconflow_api_key",
+            ProviderType.CUSTOM: "custom_api_key",
         }
-        
+
         key_name = key_mapping.get(provider_type)
         if key_name:
             return self.settings.get(key_name, "")
@@ -151,7 +191,7 @@ class LLMManager:
         self._save_settings()
         self._initialize_provider()
     
-    def set_provider(self, provider_type: ProviderType, api_key: str, model_name: str):
+    def set_provider(self, provider_type: ProviderType, api_key: str, model_name: str, **kwargs):
         """设置提供商"""
         try:
             # 更新设置
@@ -159,28 +199,44 @@ class LLMManager:
                 "llm_provider": provider_type.value,
                 "model_name": model_name
             }
-            
+
             # 更新对应提供商的API密钥
             key_mapping = {
                 ProviderType.DASHSCOPE: "dashscope_api_key",
                 ProviderType.OPENAI: "openai_api_key",
                 ProviderType.GEMINI: "gemini_api_key",
                 ProviderType.SILICONFLOW: "siliconflow_api_key",
+                ProviderType.CUSTOM: "custom_api_key",
             }
-            
+
             key_name = key_mapping.get(provider_type)
             if key_name:
                 provider_settings[key_name] = api_key
-            
+
+            # Handle custom provider specific settings
+            if provider_type == ProviderType.CUSTOM:
+                if "base_url" in kwargs:
+                    provider_settings["custom_base_url"] = kwargs["base_url"]
+                if "api_style" in kwargs:
+                    provider_settings["custom_api_style"] = kwargs["api_style"]
+
             self.update_settings(provider_settings)
-            
+
             # 创建新的提供商实例
-            self.current_provider = LLMProviderFactory.create_provider(
-                provider_type, api_key, model_name
-            )
-            
+            if provider_type == ProviderType.CUSTOM:
+                base_url = kwargs.get("base_url", self.settings.get("custom_base_url", ""))
+                api_style = kwargs.get("api_style", self.settings.get("custom_api_style", "openai"))
+                self.current_provider = LLMProviderFactory.create_provider(
+                    provider_type, api_key, model_name,
+                    base_url=base_url, api_style=api_style
+                )
+            else:
+                self.current_provider = LLMProviderFactory.create_provider(
+                    provider_type, api_key, model_name
+                )
+
             logger.info(f"已切换到{provider_type.value}提供商，模型: {model_name}")
-            
+
         except Exception as e:
             logger.error(f"设置提供商失败: {e}")
             raise
@@ -213,10 +269,21 @@ class LLMManager:
                 time.sleep(2 ** attempt)  # 指数退避
         return ""
     
-    def test_provider_connection(self, provider_type: ProviderType, api_key: str, model_name: str) -> bool:
+    def test_provider_connection(self, provider_type: ProviderType, api_key: str, model_name: str, **kwargs) -> bool:
         """测试提供商连接"""
         try:
-            provider = LLMProviderFactory.create_provider(provider_type, api_key, model_name)
+            if provider_type == ProviderType.CUSTOM:
+                base_url = kwargs.get("base_url", "")
+                api_style = kwargs.get("api_style", "openai")
+                if not base_url:
+                    logger.warning("Custom provider test requires base_url")
+                    return False
+                provider = LLMProviderFactory.create_provider(
+                    provider_type, api_key, model_name,
+                    base_url=base_url, api_style=api_style
+                )
+            else:
+                provider = LLMProviderFactory.create_provider(provider_type, api_key, model_name)
             return provider.test_connection()
         except Exception as e:
             logger.error(f"测试{provider_type.value}连接失败: {e}")

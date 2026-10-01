@@ -770,40 +770,35 @@ async def get_processing_status(
 @router.get("/{project_id}/logs")
 async def get_project_logs(
     project_id: str,
-    lines: int = Query(50, ge=1, le=1000, description="Number of log lines to return"),
+    lines: int = Query(100, ge=1, le=1000, description="Number of log lines to return"),
     project_service: ProjectService = Depends(get_project_service)
 ):
-    """Get project logs."""
+    """Get project activity logs from task history."""
     try:
-        # 模拟日志数据，实际应该从日志服务获取
-        return {
-            "logs": [
-                {
-                    "timestamp": "2025-08-01T13:30:00.000Z",
-                    "module": "processing",
-                    "level": "INFO",
-                    "message": "开始处理项目"
-                },
-                {
-                    "timestamp": "2025-08-01T13:30:05.000Z",
-                    "module": "processing",
-                    "level": "INFO",
-                    "message": "Step 1: 提取大纲完成"
-                },
-                {
-                    "timestamp": "2025-08-01T13:30:10.000Z",
-                    "module": "processing",
-                    "level": "INFO",
-                    "message": "Step 2: 时间定位完成"
-                },
-                {
-                    "timestamp": "2025-08-01T13:30:15.000Z",
-                    "module": "processing",
-                    "level": "INFO",
-                    "message": "Step 3: 内容评分进行中..."
-                }
-            ]
-        }
+        from ...core.database import SessionLocal
+        from ...models.task import Task
+
+        db = SessionLocal()
+        try:
+            tasks = db.query(Task).filter(
+                Task.project_id == project_id
+            ).order_by(Task.created_at.desc()).limit(lines).all()
+
+            events = []
+            for task in tasks:
+                events.append({
+                    "timestamp": task.updated_at.isoformat() if task.updated_at else (task.created_at.isoformat() if task.created_at else None),
+                    "module": task.task_type.value if task.task_type else "unknown",
+                    "level": "ERROR" if task.status and task.status.value == "failed" else ("SUCCESS" if task.status and task.status.value == "completed" else "INFO"),
+                    "message": task.current_step or task.error_message or task.description or f"Task {task.status.value if task.status else 'unknown'}",
+                    "progress": task.progress,
+                    "status": task.status.value if task.status else "unknown",
+                    "task_id": task.id
+                })
+
+            return {"logs": list(reversed(events))}
+        finally:
+            db.close()
     except Exception as e:
         logger.exception("获取项目日志失败: %s", project_id)
         raise HTTPException(status_code=500, detail="获取项目日志失败，请稍后重试")

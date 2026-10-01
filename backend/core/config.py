@@ -22,7 +22,7 @@ class DatabaseSettings(BaseModel):
 
 class RedisSettings(BaseModel):
     """Redis配置"""
-    url: str = Field(default='redis://localhost:6379/0', validation_alias=AliasChoices('REDIS_URL'))
+    url: str = Field(default='redis://redis:6379/0', validation_alias=AliasChoices('REDIS_URL'))
 
 class ProcessingSettings(BaseModel):
     """处理配置"""
@@ -48,7 +48,7 @@ class Settings(BaseSettings):
 
     # 直接定义字段，不使用嵌套的BaseModel
     database_url: str = Field(default='sqlite:///./data/autoclip.db', validation_alias=AliasChoices('DATABASE_URL'))
-    redis_url: str = Field(default='redis://localhost:6379/0', validation_alias=AliasChoices('REDIS_URL'))
+    redis_url: str = Field(default='redis://redis:6379/0', validation_alias=AliasChoices('REDIS_URL'))
     api_dashscope_api_key: str = Field(default='', validation_alias=AliasChoices('API_DASHSCOPE_API_KEY'))
     api_model_name: str = Field(default='qwen-plus', validation_alias=AliasChoices('API_MODEL_NAME'))
     api_max_tokens: int = Field(default=4096, validation_alias=AliasChoices('API_MAX_TOKENS'))

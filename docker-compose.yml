@@ -1,5 +1,5 @@
 services:
-  # Redis服务
+  # Serviço Redis
   redis:
     image: redis:7-alpine
     container_name: autoclip-redis
@@ -15,7 +15,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # 主应用服务
+  # Serviço de Aplicação Principal
   autoclip:
     build:
       context: .
@@ -32,8 +32,16 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - DATABASE_URL=sqlite:///./data/autoclip.db
       - ENVIRONMENT=production
-      - DEBUG=false
+      - DEBUG=true
       - LOG_LEVEL=INFO
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      - LLM_PROVIDER=${LLM_PROVIDER}
+      - MODEL_NAME=${MODEL_NAME}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - SILICONFLOW_API_KEY=${SILICONFLOW_API_KEY}
+      - CUSTOM_API_KEY=${CUSTOM_API_KEY}
+      - CUSTOM_BASE_URL=${CUSTOM_BASE_URL}
     depends_on:
       redis:
         condition: service_healthy
@@ -44,7 +52,7 @@ services:
       retries: 3
       start_period: 40s
 
-  # Celery Worker服务
+  # Serviço Celery Worker
   celery-worker:
     build:
       context: .
@@ -61,14 +69,22 @@ services:
       - ENVIRONMENT=production
       - DEBUG=false
       - LOG_LEVEL=INFO
-    command: celery -A backend.core.celery_app worker --loglevel=info --concurrency=2
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      - LLM_PROVIDER=${LLM_PROVIDER}
+      - MODEL_NAME=${MODEL_NAME}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - SILICONFLOW_API_KEY=${SILICONFLOW_API_KEY}
+      - CUSTOM_API_KEY=${CUSTOM_API_KEY}
+      - CUSTOM_BASE_URL=${CUSTOM_BASE_URL}
+    command: celery -A backend.core.celery_app worker --loglevel=info --concurrency=2 -Q celery,processing
     depends_on:
       redis:
         condition: service_healthy
       autoclip:
         condition: service_healthy
 
-  # Celery Beat调度器
+  # Celery Beat Scheduler
   celery-beat:
     build:
       context: .
@@ -91,7 +107,7 @@ services:
       autoclip:
         condition: service_healthy
 
-  # Flower监控服务（可选）
+  # Flower monitoring service (optional)
   flower:
     build:
       context: .

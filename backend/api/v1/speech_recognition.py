@@ -52,10 +52,12 @@ async def whisper_runtime_status():
 
 @router.post("/whisper/install")
 async def whisper_install():
-    """开始在后台安装 Whisper 运行时（mlx-whisper）。"""
+    """开始在后台安装 Whisper 运行时（Linux usa openai-whisper, macOS usa mlx-whisper）。"""
     from backend.services import whisper_runtime
-    if sys_is_not_darwin():
-        raise HTTPException(status_code=400, detail="mlx-whisper 仅支持 Apple Silicon (macOS)")
+    # Linux é suportado via openai-whisper; apenas bloqueia plataformas não suportadas
+    import sys
+    if sys.platform not in ("linux", "darwin"):
+        raise HTTPException(status_code=400, detail=f"Whisper não é suportado nesta plataforma: {sys.platform}")
     return whisper_runtime.start_install()
 
 
@@ -65,10 +67,6 @@ async def whisper_uninstall():
     from backend.services import whisper_runtime
     return whisper_runtime.uninstall()
 
-
-def sys_is_not_darwin() -> bool:
-    import sys
-    return sys.platform != "darwin"
 
 class SpeechConfigRequest(BaseModel):
     """语音识别配置请求"""

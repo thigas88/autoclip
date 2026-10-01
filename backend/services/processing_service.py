@@ -369,8 +369,8 @@ class ProcessingService:
     def _create_processing_task(self, project_id: str, task_type: TaskType = TaskType.VIDEO_PROCESSING) -> Task:
         """创建处理任务"""
         task_data = {
-            "name": f"视频处理任务 - {project_id}",
-            "description": f"处理项目 {project_id} 的视频内容",
+            "name": f"Tarefa de processamento de vídeo - {project_id}",
+            "description": f"Processando conteúdo de vídeo do projeto {project_id}",
             "project_id": project_id,
             "task_type": task_type,
             "status": TaskStatus.PENDING,

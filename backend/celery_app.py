@@ -14,8 +14,8 @@ else:
     # 服务端/开发常规模式：Redis 或你配置的 broker/backend
     from celery import Celery
 
-    broker_url = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
-    backend_url = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
+    broker_url = os.getenv("CELERY_BROKER_URL", os.getenv("REDIS_URL", "redis://redis:6379/0"))
+    backend_url = os.getenv("CELERY_RESULT_BACKEND", os.getenv("REDIS_URL", "redis://redis:6379/0"))
 
     celery_app = Celery(__name__, broker=broker_url, backend=backend_url)
     celery_app.conf.update(

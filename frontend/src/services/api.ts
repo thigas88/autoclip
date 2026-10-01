@@ -197,11 +197,22 @@ export const settingsApi = {
   },
 
   // 测试API密钥
-  testApiKey: (provider: string, apiKey: string): Promise<{ success: boolean; error?: string }> => {
-    return api.post('/settings/test-api', { 
-      provider, 
-      api_key: apiKey
-    })
+  testApiKey: (provider: string, apiKey: string, options?: { base_url?: string; api_style?: string; model_name?: string }): Promise<{ success: boolean; error?: string }> => {
+    const payload: Record<string, string> = {
+      provider,
+      api_key: apiKey,
+    }
+    // Sempre envia base_url para provedor custom, mesmo que vazio (backend valida)
+    if (provider === 'custom') {
+      payload.base_url = options?.base_url || ''
+      payload.api_style = options?.api_style || 'openai'
+      payload.model_name = options?.model_name || 'gpt-3.5-turbo'
+    } else {
+      if (options?.base_url) payload.base_url = options.base_url
+      if (options?.api_style) payload.api_style = options.api_style
+      if (options?.model_name) payload.model_name = options.model_name
+    }
+    return api.post('/settings/test-api', payload)
   },
 
   // 获取所有可用模型

@@ -19,6 +19,7 @@ class ProviderType(Enum):
     OPENAI = "openai"        # OpenAI
     GEMINI = "gemini"        # Google Gemini
     SILICONFLOW = "siliconflow"  # 硅基流动
+    CUSTOM = "custom"        # Custom OpenAI-compatible API
 
 @dataclass
 class ModelInfo:
@@ -522,25 +523,120 @@ class SiliconFlowProvider(LLMProvider):
             )
         ]
 
+class OpenAICompatibleProvider(LLMProvider):
+    """OpenAI-compatible provider for custom APIs (supports Anthropic-style endpoints, Ollama, vLLM, etc.)"""
+
+    def __init__(self, api_key: str, model_name: str, base_url: str, **kwargs):
+        super().__init__(api_key, model_name, **kwargs)
+        self.base_url = base_url.rstrip('/')
+        # Support both OpenAI-style and Anthropic-style endpoints
+        self.api_style = kwargs.get('api_style', 'openai')  # 'openai' or 'anthropic'
+
+    def call(self, prompt: str, input_data: Any = None, **kwargs) -> LLMResponse:
+        """Call the custom OpenAI-compatible API"""
+        try:
+            import requests
+
+            full_input = self._build_full_input(prompt, input_data)
+
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+
+            # Normaliza base_url removendo trailing slashes e paths duplicados
+            base = self.base_url.rstrip('/')
+            if self.api_style == 'anthropic':
+                # Anthropic-style API: evita duplicar /v1 se base_url já terminar com /v1
+                if base.endswith('/v1'):
+                    url = f"{base}/messages"
+                else:
+                    url = f"{base}/v1/messages"
+                data = {
+                    "model": self.model_name,
+                    "messages": [{"role": "user", "content": full_input}],
+                    "max_tokens": kwargs.get("max_tokens", 4096),
+                    **{k: v for k, v in kwargs.items() if k != 'max_tokens'}
+                }
+            else:
+                # OpenAI-style API: evita duplicar /v1 se base_url já terminar com /v1
+                if base.endswith('/v1'):
+                    url = f"{base}/chat/completions"
+                else:
+                    url = f"{base}/v1/chat/completions"
+                data = {
+                    "model": self.model_name,
+                    "messages": [{"role": "user", "content": full_input}],
+                    "stream": False,
+                    **kwargs
+                }
+
+            response = requests.post(url, headers=headers, json=data, timeout=60)
+            response.raise_for_status()
+            result = response.json()
+
+            if self.api_style == 'anthropic':
+                content = result["content"][0]["text"]
+                usage = result.get("usage")
+                finish_reason = result.get("stop_reason")
+            else:
+                content = result["choices"][0]["message"]["content"]
+                usage = result.get("usage")
+                finish_reason = result["choices"][0].get("finish_reason")
+
+            return LLMResponse(
+                content=content,
+                usage=usage,
+                model=self.model_name,
+                finish_reason=finish_reason
+            )
+
+        except Exception as e:
+            logger.error(f"Custom OpenAI-compatible API call failed: {str(e)}")
+            raise
+
+    def test_connection(self) -> bool:
+        """Test the custom API connection"""
+        try:
+            response = self.call("test", max_tokens=10)
+            return response and response.content is not None
+        except Exception as e:
+            logger.error(f"Custom API connection test failed: {e}")
+            return False
+
+    def get_available_models(self) -> List[ModelInfo]:
+        """Return placeholder model info for custom provider"""
+        return [
+            ModelInfo(
+                name=self.model_name,
+                display_name=f"Custom: {self.model_name}",
+                provider=ProviderType.CUSTOM,
+                max_tokens=8192,
+                description=f"Custom OpenAI-compatible API at {self.base_url}"
+            )
+        ]
+
+
 class LLMProviderFactory:
     """LLM提供商工厂"""
-    
+
     _providers = {
         ProviderType.DASHSCOPE: DashScopeProvider,
         ProviderType.OPENAI: OpenAIProvider,
         ProviderType.GEMINI: GeminiProvider,
         ProviderType.SILICONFLOW: SiliconFlowProvider,
+        ProviderType.CUSTOM: OpenAICompatibleProvider,
     }
-    
+
     @classmethod
     def create_provider(cls, provider_type: ProviderType, api_key: str, model_name: str, **kwargs) -> LLMProvider:
         """创建提供商实例"""
         if provider_type not in cls._providers:
             raise ValueError(f"不支持的提供商类型: {provider_type}")
-        
+
         provider_class = cls._providers[provider_type]
         return provider_class(api_key, model_name, **kwargs)
-    
+
     @classmethod
     def get_all_available_models(cls) -> Dict[ProviderType, List[ModelInfo]]:
         """获取所有提供商的可用模型"""
@@ -548,8 +644,12 @@ class LLMProviderFactory:
         for provider_type, provider_class in cls._providers.items():
             try:
                 # 创建临时实例来获取模型列表
-                temp_provider = provider_class("dummy_key", "dummy_model")
-                models[provider_type] = temp_provider.get_available_models()
+                if provider_type == ProviderType.CUSTOM:
+                    # Custom provider requires base_url, skip for static list
+                    models[provider_type] = []
+                else:
+                    temp_provider = provider_class("dummy_key", "dummy_model")
+                    models[provider_type] = temp_provider.get_available_models()
             except Exception as e:
                 logger.warning(f"无法获取{provider_type.value}的模型列表: {e}")
                 models[provider_type] = []

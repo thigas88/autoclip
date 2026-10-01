@@ -275,6 +275,30 @@ class DesktopConfig:
         self.settings.api_timeout = value
 
     @property
+    def custom_api_key(self) -> str:
+        return os.getenv("AUTOCLIP_CUSTOM_API_KEY", "")
+
+    @custom_api_key.setter
+    def custom_api_key(self, value: str) -> None:
+        os.environ["AUTOCLIP_CUSTOM_API_KEY"] = value
+
+    @property
+    def custom_base_url(self) -> str:
+        return os.getenv("AUTOCLIP_CUSTOM_BASE_URL", "")
+
+    @custom_base_url.setter
+    def custom_base_url(self, value: str) -> None:
+        os.environ["AUTOCLIP_CUSTOM_BASE_URL"] = value
+
+    @property
+    def custom_api_style(self) -> str:
+        return os.getenv("AUTOCLIP_CUSTOM_API_STYLE", "openai")
+
+    @custom_api_style.setter
+    def custom_api_style(self, value: str) -> None:
+        os.environ["AUTOCLIP_CUSTOM_API_STYLE"] = value
+
+    @property
     def chunk_size(self) -> int:
         return self.settings.processing_chunk_size
 

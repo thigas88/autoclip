@@ -16,186 +16,186 @@ const CookieHelper: React.FC<CookieHelperProps> = ({ visible, onClose }) => {
 
   const steps = [
     {
-      title: '登录B站',
-      description: '在浏览器中登录B站账号',
+      title: 'Entrar no Bilibili',
+      description: 'Faça login na sua conta do Bilibili no navegador',
       content: (
         <div>
           <Alert
-            message="第一步：登录B站"
-            description="请确保您已经在浏览器中成功登录了B站账号"
+            message="Passo 1: Entrar no Bilibili"
+            description="Certifique-se de que você já está logado na sua conta do Bilibili no navegador"
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
           />
           <Card size="small">
             <Paragraph>
-              1. 打开浏览器，访问 <Text code>https://www.bilibili.com</Text>
+              1. Abra o navegador e acesse <Text code>https://www.bilibili.com</Text>
             </Paragraph>
             <Paragraph>
-              2. 点击右上角的"登录"按钮
+              2. Clique no botão "Login" no canto superior direito
             </Paragraph>
             <Paragraph>
-              3. 使用您的B站账号登录
+              3. Faça login com sua conta do Bilibili
             </Paragraph>
             <Paragraph>
-              4. 确认登录成功后，您应该能看到您的用户名显示在右上角
+              4. Após confirmar o login, seu nome de usuário deve aparecer no canto superior direito
             </Paragraph>
           </Card>
         </div>
       )
     },
     {
-      title: '打开开发者工具',
-      description: '按F12打开浏览器开发者工具',
+      title: 'Abrir ferramentas de desenvolvedor',
+      description: 'Pressione F12 para abrir as ferramentas de desenvolvedor do navegador',
       content: (
         <div>
           <Alert
-            message="第二步：打开开发者工具"
-            description="使用快捷键打开浏览器的开发者工具"
+            message="Passo 2: Abrir ferramentas de desenvolvedor"
+            description="Use o atalho de teclado para abrir as ferramentas de desenvolvedor do navegador"
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
           />
           <Card size="small">
             <Paragraph>
-              <Text strong>Windows/Linux:</Text> 按 <Text code>F12</Text> 键
+              <Text strong>Windows/Linux:</Text> Pressione a tecla <Text code>F12</Text>
             </Paragraph>
             <Paragraph>
-              <Text strong>Mac:</Text> 按 <Text code>Command + Option + I</Text>
+              <Text strong>Mac:</Text> Pressione <Text code>Command + Option + I</Text>
             </Paragraph>
             <Paragraph>
-              或者右键点击页面空白处，选择"检查"或"Inspect"
+              Ou clique com o botão direito em uma área vazia da página e selecione "Inspecionar" ou "Inspect"
             </Paragraph>
             <Divider />
             <Paragraph type="secondary">
-              开发者工具会在页面底部或右侧打开，包含多个标签页
+              As ferramentas de desenvolvedor serão abertas na parte inferior ou lateral da página, com várias abas
             </Paragraph>
           </Card>
         </div>
       )
     },
     {
-      title: '切换到Network标签',
-      description: '找到Network（网络）标签页',
+      title: 'Ir para a aba Network',
+      description: 'Encontre a aba Network (Rede)',
       content: (
         <div>
           <Alert
-            message="第三步：切换到Network标签"
-            description="在开发者工具中找到Network标签页"
+            message="Passo 3: Ir para a aba Network"
+            description="Encontre a aba Network nas ferramentas de desenvolvedor"
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
           />
           <Card size="small">
             <Paragraph>
-              1. 在开发者工具顶部找到标签页
+              1. Encontre as abas na parte superior das ferramentas de desenvolvedor
             </Paragraph>
             <Paragraph>
-              2. 点击 <Text code>Network</Text> 标签
+              2. Clique na aba <Text code>Network</Text>
             </Paragraph>
             <Paragraph>
-              3. 确保Network面板是空的（如果有内容，点击清除按钮）
+              3. Certifique-se de que o painel Network esteja vazio (se houver conteúdo, clique no botão de limpar)
             </Paragraph>
             <Divider />
             <Paragraph type="secondary">
-              Network标签页用于监控网页的网络请求，包括Cookie信息
+              A aba Network é usada para monitorar as requisições de rede da página, incluindo informações de Cookie
             </Paragraph>
           </Card>
         </div>
       )
     },
     {
-      title: '刷新页面',
-      description: '刷新B站页面以捕获请求',
+      title: 'Atualizar a página',
+      description: 'Atualize a página do Bilibili para capturar as requisições',
       content: (
         <div>
           <Alert
-            message="第四步：刷新页面"
-            description="刷新B站页面以捕获网络请求"
+            message="Passo 4: Atualizar a página"
+            description="Atualize a página do Bilibili para capturar as requisições de rede"
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
           />
           <Card size="small">
             <Paragraph>
-              1. 确保Network标签页已打开
+              1. Certifique-se de que a aba Network esteja aberta
             </Paragraph>
             <Paragraph>
-              2. 按 <Text code>F5</Text> 或点击浏览器的刷新按钮
+              2. Pressione <Text code>F5</Text> ou clique no botão de atualizar do navegador
             </Paragraph>
             <Paragraph>
-              3. 观察Network面板中出现的请求列表
+              3. Observe a lista de requisições que aparece no painel Network
             </Paragraph>
             <Divider />
             <Paragraph type="secondary">
-              刷新后，Network面板会显示页面加载过程中的所有网络请求
+              Após atualizar, o painel Network exibirá todas as requisições de rede feitas durante o carregamento da página
             </Paragraph>
           </Card>
         </div>
       )
     },
     {
-      title: '找到Cookie',
-      description: '在请求头中找到Cookie信息',
+      title: 'Encontrar o Cookie',
+      description: 'Encontre as informações de Cookie nos cabeçalhos da requisição',
       content: (
         <div>
           <Alert
-            message="第五步：找到Cookie信息"
-            description="在任意请求中找到Cookie字段"
+            message="Passo 5: Encontrar as informações de Cookie"
+            description="Encontre o campo Cookie em qualquer requisição"
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
           />
           <Card size="small">
             <Paragraph>
-              1. 在Network面板中找到任意一个请求（通常选择第一个）
+              1. No painel Network, encontre qualquer requisição (geralmente escolha a primeira)
             </Paragraph>
             <Paragraph>
-              2. 点击该请求，在右侧面板中找到 <Text code>Headers</Text> 标签
+              2. Clique na requisição e encontre a aba <Text code>Headers</Text> no painel à direita
             </Paragraph>
             <Paragraph>
-              3. 在 <Text code>Request Headers</Text> 部分找到 <Text code>Cookie</Text> 字段
+              3. Na seção <Text code>Request Headers</Text>, encontre o campo <Text code>Cookie</Text>
             </Paragraph>
             <Paragraph>
-              4. Cookie字段的值就是您需要的完整Cookie字符串
+              4. O valor do campo Cookie é a string completa de Cookie que você precisa
             </Paragraph>
             <Divider />
             <Paragraph type="secondary">
-              Cookie字符串通常很长，包含多个键值对，用分号分隔
+              A string de Cookie geralmente é longa, contendo vários pares chave-valor separados por ponto e vírgula
             </Paragraph>
           </Card>
         </div>
       )
     },
     {
-      title: '复制Cookie',
-      description: '复制完整的Cookie字符串',
+      title: 'Copiar o Cookie',
+      description: 'Copie a string completa de Cookie',
       content: (
         <div>
           <Alert
-            message="第六步：复制Cookie"
-            description="复制完整的Cookie字符串到剪贴板"
+            message="Passo 6: Copiar o Cookie"
+            description="Copie a string completa de Cookie para a área de transferência"
             type="success"
             showIcon
             style={{ marginBottom: 16 }}
           />
           <Card size="small">
             <Paragraph>
-              1. 右键点击Cookie字段的值
+              1. Clique com o botão direito no valor do campo Cookie
             </Paragraph>
             <Paragraph>
-              2. 选择"复制值"或"Copy value"
+              2. Selecione "Copiar valor" ou "Copy value"
             </Paragraph>
             <Paragraph>
-              3. 或者双击选中整个Cookie值，然后按 <Text code>Ctrl+C</Text> 复制
+              3. Ou dê duplo clique para selecionar todo o valor do Cookie e pressione <Text code>Ctrl+C</Text> para copiar
             </Paragraph>
             <Divider />
             <Paragraph type="secondary">
-              复制的Cookie字符串可以直接粘贴到AutoClip的Cookie输入框中
+              A string de Cookie copiada pode ser colada diretamente no campo de Cookie do AutoClip
             </Paragraph>
             <Alert
-              message="重要提示"
-              description="Cookie包含您的登录信息，请妥善保管，不要分享给他人"
+              message="Aviso importante"
+              description="O Cookie contém suas informações de login. Mantenha-o seguro e não compartilhe com outras pessoas"
               type="warning"
               showIcon
             />
@@ -218,29 +218,29 @@ const CookieHelper: React.FC<CookieHelperProps> = ({ visible, onClose }) => {
       title={
         <Space>
           <QuestionCircleOutlined />
-          <span>Cookie获取指南</span>
+          <span>Guia para obter o Cookie</span>
         </Space>
       }
       open={visible}
       onCancel={onClose}
       footer={[
         <Button key="back" onClick={onClose}>
-          关闭
+          Fechar
         </Button>,
         <Button
           key="copy"
           icon={copied ? <CheckOutlined /> : <CopyOutlined />}
           onClick={handleCopy}
         >
-          {copied ? '已复制' : '复制示例'}
+          {copied ? 'Copiado' : 'Copiar exemplo'}
         </Button>
       ]}
       width={700}
     >
       <div style={{ marginBottom: 16 }}>
         <Alert
-          message="Cookie导入是最安全的登录方式"
-          description="相比扫码登录，Cookie导入不会触发B站的风控机制，是最推荐的登录方式。"
+          message="Importar Cookie é a forma mais segura de fazer login"
+          description="Comparado ao login por QR Code, importar Cookie não aciona os mecanismos de proteção do Bilibili e é a forma mais recomendada de login."
           type="success"
           showIcon
         />
@@ -258,12 +258,12 @@ const CookieHelper: React.FC<CookieHelperProps> = ({ visible, onClose }) => {
 
       <Divider />
 
-      <Card size="small" title="Cookie格式示例">
+      <Card size="small" title="Exemplo de formato de Cookie">
         <Paragraph code style={{ fontSize: '12px', wordBreak: 'break-all' }}>
           SESSDATA=your_sessdata_here; bili_jct=your_bili_jct_here; DedeUserID=your_dedeuserid_here; buvid3=your_buvid3_here
         </Paragraph>
         <Paragraph type="secondary" style={{ fontSize: '12px' }}>
-          注意：实际的Cookie值会比这个示例长很多，包含更多的字段
+          Nota: o valor real do Cookie será muito mais longo que este exemplo, contendo mais campos
         </Paragraph>
       </Card>
     </Modal>
@@ -271,4 +271,3 @@ const CookieHelper: React.FC<CookieHelperProps> = ({ visible, onClose }) => {
 }
 
 export default CookieHelper
-

@@ -12,10 +12,15 @@ import {
   message,
   Radio
 } from 'antd'
-import { 
-  ArrowLeftOutlined, 
+import {
+  ArrowLeftOutlined,
   PlayCircleOutlined,
-  PlusOutlined
+  PlusOutlined,
+  ReloadOutlined,
+  FileTextOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  InfoCircleOutlined
 } from '@ant-design/icons'
 import { useProjectStore, Clip, Collection } from '../store/useProjectStore'
 import { projectApi } from '../services/api'
@@ -51,6 +56,7 @@ const ProjectDetailPage: React.FC = () => {
   const [sortBy, setSortBy] = useState<'time' | 'score'>('score')
   const [showCollectionDetail, setShowCollectionDetail] = useState(false)
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null)
+  const [processingStatus, setProcessingStatus] = useState<{status?: string} | null>(null)
   const { generateAndDownloadCollectionVideo } = useCollectionVideoDownload()
 
   useEffect(() => {
@@ -118,11 +124,50 @@ const ProjectDetailPage: React.FC = () => {
       await projectApi.startProcessing(id)
       message.success('Processamento iniciado')
       loadProcessingStatus()
+      loadProjectLogs()
     } catch (error) {
       console.error('Failed to start processing:', error)
       message.error('Falha ao iniciar processamento')
     }
   }
+
+  // --- Activity Logs & Retry ---
+  const [projectLogs, setProjectLogs] = useState<Array<{timestamp: string; module: string; level: string; message: string; progress?: number; status?: string}>>([])
+  const [logsLoading, setLogsLoading] = useState(false)
+  const [retrying, setRetrying] = useState(false)
+
+  const loadProjectLogs = async () => {
+    if (!id) return
+    setLogsLoading(true)
+    try {
+      const res = await projectApi.getProjectLogs(id, 100)
+      setProjectLogs(res?.logs || [])
+    } catch (error) {
+      console.error('Failed to load project logs:', error)
+    } finally {
+      setLogsLoading(false)
+    }
+  }
+
+  const handleRetryProcessing = async () => {
+    if (!id) return
+    setRetrying(true)
+    try {
+      await projectApi.retryProcessing(id)
+      message.success('Processamento reiniciado')
+      loadProcessingStatus()
+      loadProjectLogs()
+    } catch (error) {
+      console.error('Failed to retry processing:', error)
+      message.error('Falha ao reiniciar processamento')
+    } finally {
+      setRetrying(false)
+    }
+  }
+
+  useEffect(() => {
+    if (id) loadProjectLogs()
+  }, [id])
 
   const handleCreateCollection = async (title: string, summary: string, clipIds: string[]) => {
     if (!id) return
@@ -490,11 +535,95 @@ const ProjectDetailPage: React.FC = () => {
       ) : (
         <div>
           {/* 任务管理组件 */}
-          <ProjectTaskManager 
-            projectId={currentProject.id} 
+          <ProjectTaskManager
+            projectId={currentProject.id}
             projectName={currentProject.name}
           />
-          
+
+          {/* Activity Logs Section */}
+          <Card
+            style={{
+              marginTop: '16px',
+              background: 'var(--ac-surface)',
+              border: '1px solid var(--ac-line)',
+              borderRadius: '12px'
+            }}
+            title={
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FileTextOutlined style={{ color: 'var(--ac-accent)' }} />
+                <span style={{ color: '#ffffff', fontWeight: 600 }}>Log de Atividades</span>
+              </div>
+            }
+            extra={
+              <Button
+                icon={<ReloadOutlined spin={retrying} />}
+                loading={retrying}
+                onClick={handleRetryProcessing}
+                disabled={processingStatus?.status === 'running' || processingStatus?.status === 'pending'}
+                style={{
+                  borderRadius: '8px',
+                  borderColor: 'var(--ac-line)',
+                  color: 'var(--ac-sub)',
+                  background: 'transparent'
+                }}
+              >
+                Reiniciar Processamento
+              </Button>
+            }
+          >
+            <div style={{
+              maxHeight: '320px',
+              overflowY: 'auto',
+              padding: '4px 0',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}>
+              {logsLoading ? (
+                <div style={{ textAlign: 'center', padding: '24px', color: 'var(--ac-sub)' }}>Carregando eventos...</div>
+              ) : projectLogs.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px', color: 'var(--ac-sub)' }}>Nenhum evento registrado</div>
+              ) : (
+                projectLogs.map((log, idx) => {
+                  const isError = log.level === 'ERROR'
+                  const isSuccess = log.level === 'SUCCESS'
+                  const Icon = isError ? CloseCircleOutlined : isSuccess ? CheckCircleOutlined : InfoCircleOutlined
+                  const iconColor = isError ? '#ff4d4f' : isSuccess ? '#52c41a' : 'var(--ac-accent)'
+                  return (
+                    <div
+                      key={`${log.timestamp}-${idx}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '10px',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        background: isError ? 'rgba(255,77,79,0.08)' : 'rgba(255,255,255,0.03)',
+                        border: `1px solid ${isError ? 'rgba(255,77,79,0.2)' : 'var(--ac-line)'}`
+                      }}
+                    >
+                      <Icon style={{ color: iconColor, marginTop: '3px', flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                          <Text style={{ color: '#ffffff', fontSize: '13px', fontWeight: 500 }}>{log.message}</Text>
+                          <Text style={{ color: 'var(--ac-sub)', fontSize: '11px', flexShrink: 0 }}>
+                            {log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : ''}
+                          </Text>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <Text style={{ color: 'var(--ac-sub)', fontSize: '11px' }}>{log.module}</Text>
+                          {typeof log.progress === 'number' && log.progress > 0 && (
+                            <Text style={{ color: 'var(--ac-accent)', fontSize: '11px' }}>{Math.round(log.progress)}%</Text>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </Card>
+
           {/* 项目状态提示 */}
           <Card style={{ marginTop: '16px' }}>
             <Empty 

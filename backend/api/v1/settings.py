@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, field_validator
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +56,7 @@ class ApiKeys(BaseModel):
     siliconflow: str = Field(default="", description="SiliconFlow API密钥")
     jimeng_access: str = Field(default="", description="即梦AI访问密钥")
     jimeng_secret: str = Field(default="", description="即梦AI秘密密钥")
+    custom: str = Field(default="", description="Custom OpenAI-compatible API密钥")
 
 
 class ApiSettings(BaseModel):
@@ -64,6 +65,8 @@ class ApiSettings(BaseModel):
     api_model: str = Field(default="qwen-plus", description="默认模型")
     api_max_tokens: int = Field(default=4096, description="最大Token数")
     api_timeout: int = Field(default=30, description="API超时时间(秒)")
+    custom_base_url: str = Field(default="", description="Custom API base URL (e.g. https://api.example.com)")
+    custom_api_style: str = Field(default="openai", description="API style: 'openai' or 'anthropic'")
     
     @validator('api_timeout')
     def validate_timeout(cls, v):
@@ -210,12 +213,15 @@ async def get_settings():
                     openai=config.openai_api_key,
                     gemini=config.gemini_api_key,
                     siliconflow=config.siliconflow_api_key,
+                    custom=config.custom_api_key,
                     jimeng_access="",  # 默认值
                     jimeng_secret=""   # 默认值
                 ),
                 api_model=config.default_model,
                 api_max_tokens=config.max_tokens,
-                api_timeout=config.timeout
+                api_timeout=config.timeout,
+                custom_base_url=config.custom_base_url,
+                custom_api_style=config.custom_api_style
             ),
             processing=ProcessingSettings(
                 processing_chunk_size=config.chunk_size,
@@ -302,12 +308,23 @@ async def clear_settings(
 class TestApiRequest(BaseModel):
     provider: str
     api_key: str
+    base_url: Optional[str] = ""
+    api_style: Optional[str] = "openai"
+    model_name: Optional[str] = ""
+
+    @field_validator("model_name", mode="before")
+    @classmethod
+    def _normalize_model_name(cls, v):
+        # Frontend pode enviar array (Select mode="tags"); pega primeiro item
+        if isinstance(v, list):
+            return v[0] if v else ""
+        return v or ""
 
 @router.post("/test-api")
 async def test_api_connection(request: TestApiRequest):
-    """测试API连接"""
-    check_desktop_mode()
-    
+    """测试API连接 - disponível em todos os modos (Docker/Desktop)"""
+    # Removido check_desktop_mode() para permitir uso em ambiente Docker/servidor
+
     try:
         # 首先进行基本的API Key格式验证
         if not request.api_key or len(request.api_key.strip()) < 10:
@@ -339,6 +356,23 @@ async def test_api_connection(request: TestApiRequest):
         elif request.provider == "siliconflow":
             from backend.core.llm_providers import SiliconFlowProvider
             provider_instance = SiliconFlowProvider(api_key=request.api_key)
+        elif request.provider == "custom":
+            from backend.core.llm_providers import LLMProviderFactory, ProviderType
+            if not request.base_url:
+                return {
+                    "success": False,
+                    "error": "Custom provider requires base_url",
+                    "provider": request.provider
+                }
+            model_name = request.model_name or "gpt-3.5-turbo"
+            api_style = request.api_style or "openai"
+            provider_instance = LLMProviderFactory.create_provider(
+                ProviderType.CUSTOM,
+                request.api_key,
+                model_name,
+                base_url=request.base_url,
+                api_style=api_style
+            )
         else:
             raise HTTPException(status_code=400, detail="不支持的API提供商")
         
@@ -396,6 +430,9 @@ async def update_settings(settings: DesktopSettings):
         config.openai_api_key = settings.api.api_keys.openai
         config.gemini_api_key = settings.api.api_keys.gemini
         config.siliconflow_api_key = settings.api.api_keys.siliconflow
+        config.custom_api_key = settings.api.api_keys.custom
+        config.custom_base_url = settings.api.custom_base_url
+        config.custom_api_style = settings.api.custom_api_style
         config.default_model = settings.api.api_model
         config.max_tokens = settings.api.api_max_tokens
         config.timeout = settings.api.api_timeout

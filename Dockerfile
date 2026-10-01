@@ -57,10 +57,12 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app
 
-# 安装运行时依赖
+# 安装运行时依赖（包括Node.js作为yt-dlp JS runtime）
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
+    nodejs \
+    npm \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 

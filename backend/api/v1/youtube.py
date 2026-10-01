@@ -97,34 +97,39 @@ async def parse_youtube_video(
         import asyncio
         
         def extract_info_sync(url, browser):
-            # 构建 yt-dlp 命令
-            cmd = [
+            # 构建 yt-dlp 基础命令
+            base_cmd = [
                 sys.executable, '-m', 'yt_dlp',
                 '--ignore-config',
                 '--no-warnings',
                 '--no-playlist',
                 '--dump-json',
-                '--skip-download',  # 修正参数名
+                '--skip-download',
                 '--no-cache-dir'
             ]
-            
+
             if browser:
-                cmd.extend(['--cookies-from-browser', browser.lower()])
+                base_cmd.extend(['--cookies-from-browser', browser.lower()])
 
-            # 可选兜底客户端，规避 SABR
-            yt_client = (client or os.getenv('AUTOCLIP_YT_CLIENT', 'android,web')).strip().lower()
-            cmd.extend(['--extractor-args', f"youtube:player_client={yt_client}"])
-            
-            cmd.append(url)
-            
-            try:
-                # 执行命令（清理环境变量，避免 YT_* 影响）
-                env = os.environ.copy()
-                for k in list(env.keys()):
-                    uk = k.upper()
-                    if uk.startswith('YT_DLP') or uk.startswith('YTDL') or uk.startswith('YOUTUBE_DL') or uk.startswith('YOUTUBEDL'):
-                        env.pop(k, None)
+            # 配置YouTube播放器客户端（usar clientes válidos separados por vírgula)
+            # Por padrão, NÃO passa extractor-args: o yt-dlp escolhe o melhor client automaticamente.
+            # Forçar player_client (especialmente ios) pode causar formatos SABR-only sem URL.
+            # Só aplica se AUTOCLIP_YT_CLIENT estiver explicitamente configurado ou client param passado.
+            yt_client_env = os.getenv('AUTOCLIP_YT_CLIENT', '').strip().lower()
+            yt_client = (client or yt_client_env).strip().lower() if (client or yt_client_env) else ''
 
+            # 执行命令（清理环境变量，避免 YT_* 影响）
+            env = os.environ.copy()
+            for k in list(env.keys()):
+                uk = k.upper()
+                if uk.startswith('YT_DLP') or uk.startswith('YTDL') or uk.startswith('YOUTUBE_DL') or uk.startswith('YOUTUBEDL'):
+                    env.pop(k, None)
+
+            def run_ytdlp(extra_args=None):
+                cmd = list(base_cmd)
+                if extra_args:
+                    cmd.extend(extra_args)
+                cmd.append(url)
                 logger.info(f"执行命令: {' '.join(cmd)}")
                 result = subprocess.run(
                     cmd,
@@ -134,11 +139,24 @@ async def parse_youtube_video(
                     cwd=os.getcwd(),
                     env=env
                 )
-
                 logger.info(f"命令返回码: {result.returncode}")
-                logger.info(f"命令输出(前200字): {result.stdout[:200]}...")
+                if result.stdout:
+                    logger.info(f"命令输出(前200字): {result.stdout[:200]}...")
                 if result.stderr:
                     logger.info(f"命令错误: {result.stderr}")
+                return result
+
+            try:
+                # Primeira tentativa: sem extractor-args (yt-dlp escolhe client automaticamente)
+                # Se yt_client foi explicitamente configurado, usa na segunda tentativa como fallback
+                if yt_client:
+                    result = run_ytdlp(['--extractor-args', f"youtube:player_client={yt_client}"])
+                    # Se falhar com erro de formato, tenta sem extractor-args
+                    if result.returncode != 0 and 'Requested format is not available' in (result.stderr or ''):
+                        logger.warning(f"player_client={yt_client} falhou, tentando sem extractor-args...")
+                        result = run_ytdlp()
+                else:
+                    result = run_ytdlp()
 
                 if result.returncode != 0:
                     raise Exception(f"yt-dlp failed: {result.stderr or result.stdout}")
@@ -146,7 +164,7 @@ async def parse_youtube_video(
                 # 解析 JSON 输出
                 info_dict = json.loads(result.stdout)
                 return info_dict
-                
+
             except subprocess.TimeoutExpired:
                 raise Exception("yt-dlp timeout")
             except json.JSONDecodeError as e:
@@ -199,15 +217,44 @@ async def create_youtube_download_task(request: YouTubeDownloadRequest):
         if request.browser:
             ydl_opts['cookiesfrombrowser'] = (request.browser.lower(),)
 
-        # 可选兜底客户端
-        yt_client_env = os.getenv('AUTOCLIP_YT_CLIENT', 'android,web').strip().lower()
-        ydl_opts.setdefault('extractor_args', {}).setdefault('youtube', {}).setdefault('player_client', []).append(yt_client_env)
-        
+        # 配置YouTube播放器客户端
+        # Por padrão, NÃO passa extractor-args: o yt-dlp escolhe o melhor client automaticamente.
+        # Forçar player_client (especialmente ios) pode causar formatos SABR-only sem URL.
+        # Só aplica se AUTOCLIP_YT_CLIENT estiver explicitamente configurado.
+        yt_client_env = os.getenv('AUTOCLIP_YT_CLIENT', '').strip().lower()
+        if yt_client_env:
+            player_clients = [c.strip() for c in yt_client_env.split(',') if c.strip()]
+            if player_clients:
+                ydl_opts.setdefault('extractor_args', {}).setdefault('youtube', {})['player_client'] = player_clients
+
+        # 允许yt-dlp usar Node.js como JS runtime se disponível no container
+        ydl_opts.setdefault('js_runtimes', {'node': {}})
+
         def extract_info_sync(url, ydl_opts):
             with sanitized_yt_env():
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    return ydl.extract_info(url, download=False)
-        
+                    try:
+                        return ydl.extract_info(url, download=False)
+                    except Exception as e:
+                        err_msg = str(e).lower()
+                        if 'requested format is not available' in err_msg or 'only images' in err_msg or 'sabr' in err_msg:
+                            # Fallback 1: força client web com JS runtime
+                            logger.warning(f"extract_info falhou com player_client atual, tentando web+node: {e}")
+                            fb_opts = dict(ydl_opts)
+                            fb_opts.setdefault('extractor_args', {}).setdefault('youtube', {})['player_client'] = ['web']
+                            fb_opts['js_runtimes'] = {'node': {}}
+                            try:
+                                with yt_dlp.YoutubeDL(fb_opts) as ydl_fb:
+                                    return ydl_fb.extract_info(url, download=False)
+                            except Exception as e2:
+                                # Fallback 2: sem extractor_args
+                                logger.warning(f"fallback web falhou em extract_info, tentando sem: {e2}")
+                                fb_opts2 = dict(ydl_opts)
+                                fb_opts2.pop('extractor_args', None)
+                                with yt_dlp.YoutubeDL(fb_opts2) as ydl_fb2:
+                                    return ydl_fb2.extract_info(url, download=False)
+                        raise
+
         loop = asyncio.get_event_loop()
         video_info = await loop.run_in_executor(None, extract_info_sync, request.url, ydl_opts)
         
@@ -338,32 +385,39 @@ async def get_all_youtube_tasks():
     """获取所有YouTube下载任务"""
     return list(download_tasks.values())
 
-async def update_project_download_progress(project_id: str, progress: float, message: str):
+async def update_project_download_progress(project_id: str, progress: float, message: str, status: Optional[str] = None):
     """更新项目下载进度"""
     try:
         from ...core.database import SessionLocal
         from ...services.project_service import ProjectService
-        
+
         db = SessionLocal()
         try:
             project_service = ProjectService(db)
             project = project_service.get(project_id)
-            
+
             if project:
                 # 更新项目设置中的下载进度
                 if not project.processing_config:
                     project.processing_config = {}
-                
+
                 project.processing_config.update({
                     "download_progress": progress,
                     "download_message": message
                 })
-                
+
+                # 如果显式传入状态，优先使用
+                if status:
+                    from ...schemas.project import ProjectStatus
+                    try:
+                        project.status = ProjectStatus(status)
+                    except ValueError:
+                        pass
                 # 如果进度达到100%，更新状态为等待处理
-                if progress >= 100.0:
+                elif progress >= 100.0:
                     from ...schemas.project import ProjectStatus
                     project.status = ProjectStatus.PENDING
-                
+
                 db.commit()
                 logger.info(f"项目 {project_id} 下载进度更新: {progress}% - {message}")
                 
@@ -376,9 +430,20 @@ async def update_project_download_progress(project_id: str, progress: float, mes
 async def process_youtube_download_task(task_id: str, request: YouTubeDownloadRequest, project_id: str):
     """处理YouTube下载任务"""
     try:
-        # 更新任务状态为处理中
-        download_tasks[task_id].status = "processing"
-        download_tasks[task_id].progress = 10.0
+        # 更新任务状态为处理中（proteger contra KeyError em redownload)
+        if task_id not in download_tasks:
+            logger.warning(f"task_id {task_id} não encontrado em download_tasks, criando entrada temporária")
+            from dataclasses import dataclass
+            @dataclass
+            class _TmpTask:
+                status: str = "processing"
+                progress: float = 10.0
+                error_message: str = ""
+                updated_at: str = ""
+            download_tasks[task_id] = _TmpTask()
+        else:
+            download_tasks[task_id].status = "processing"
+            download_tasks[task_id].progress = 10.0
         
         # 更新项目状态和进度
         await update_project_download_progress(project_id, 10.0, "正在获取视频信息...")
@@ -395,13 +460,16 @@ async def process_youtube_download_task(task_id: str, request: YouTubeDownloadRe
         # 更新项目进度
         await update_project_download_progress(project_id, 30.0, "正在下载视频...")
         
-        # 设置下载选项
+        # 设置下载选项 - formato mais permissivo para evitar "Requested format is not available"
+        # Usa bestvideo+bestaudio como padrão; fallback para best se merge falhar
         ydl_opts = {
-            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+            'format': 'bestvideo+bestaudio/best/bestvideo/bestaudio',
+            'merge_output_format': 'mp4',
             'writesubtitles': True,
             'writeautomaticsub': True,  # 下载自动生成的字幕
             'subtitleslangs': ['en', 'zh-Hans', 'zh', 'en-US', 'auto'],  # 英文和中文字幕，包括自动检测
             'subtitlesformat': 'srt',
+            'ignoreerrors': True,  # 字幕/元数据失败不中断视频下载 (True ignora todos os erros pós-extract)
             'outtmpl': str(download_dir / '%(title)s.%(ext)s'),
             'noplaylist': True,
             'quiet': True,
@@ -414,26 +482,73 @@ async def process_youtube_download_task(task_id: str, request: YouTubeDownloadRe
         if request.browser:
             ydl_opts['cookiesfrombrowser'] = (request.browser.lower(),)
 
-        # 可选兜底客户端
-        yt_client_env = os.getenv('AUTOCLIP_YT_CLIENT', 'android,web').strip().lower()
-        ydl_opts.setdefault('extractor_args', {}).setdefault('youtube', {}).setdefault('player_client', []).append(yt_client_env)
-        
+        # 配置YouTube播放器客户端
+        # Por padrão, NÃO passa extractor-args: o yt-dlp escolhe o melhor client automaticamente.
+        # Forçar player_client (especialmente ios) pode causar formatos SABR-only sem URL.
+        # Só aplica se AUTOCLIP_YT_CLIENT estiver explicitamente configurado.
+        yt_client_env = os.getenv('AUTOCLIP_YT_CLIENT', '').strip().lower()
+        if yt_client_env:
+            player_clients = [c.strip() for c in yt_client_env.split(',') if c.strip()]
+            if player_clients:
+                ydl_opts.setdefault('extractor_args', {}).setdefault('youtube', {})['player_client'] = player_clients
+
+        # 允许yt-dlp usar Node.js como JS runtime se disponível no container
+        ydl_opts.setdefault('js_runtimes', {'node': {}})
+
         def download_sync(url, ydl_opts):
             with sanitized_yt_env():
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    return ydl.download([url])
-        
+                    try:
+                        return ydl.download([url])
+                    except Exception as e:
+                        err_msg = str(e).lower()
+                        if 'requested format is not available' in err_msg or 'only images' in err_msg or 'sabr' in err_msg:
+                            # Fallback 1: força client web com JS runtime (web retorna URLs diretas)
+                            logger.warning(f"download falhou com player_client atual, tentando web+node: {e}")
+                            fb_opts = dict(ydl_opts)
+                            fb_opts.setdefault('extractor_args', {}).setdefault('youtube', {})['player_client'] = ['web']
+                            fb_opts['js_runtimes'] = {'node': {}}
+                            fb_opts['format'] = 'bestvideo+bestaudio/best/bestvideo/bestaudio'
+                            try:
+                                with yt_dlp.YoutubeDL(fb_opts) as ydl_fb:
+                                    return ydl_fb.download([url])
+                            except Exception as e2:
+                                # Fallback 2: sem extractor_args, formato mais permissivo
+                                logger.warning(f"fallback web falhou, tentando sem extractor_args: {e2}")
+                                fb_opts2 = dict(ydl_opts)
+                                fb_opts2.pop('extractor_args', None)
+                                fb_opts2['format'] = 'bestvideo+bestaudio/best/bestvideo/bestaudio'
+                                with yt_dlp.YoutubeDL(fb_opts2) as ydl_fb2:
+                                    return ydl_fb2.download([url])
+                        raise
+
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, download_sync, request.url, ydl_opts)
         
-        # 查找下载的文件
+        # 查找下载的文件 - aceita mp4, mkv, webm como vídeo válido
+        # O merge pode falhar ou ser pulado; nesses casos yt-dlp salva em webm/mkv
         video_files = list(download_dir.glob("*.mp4"))
-        subtitle_files = list(download_dir.glob("*.srt"))
-        
         if not video_files:
-            raise Exception("未找到下载的视频文件")
-        
+            video_files = list(download_dir.glob("*.mkv"))
+        if not video_files:
+            video_files = list(download_dir.glob("*.webm"))
+        # Ignora arquivos .part (download incompleto)
+        video_files = [f for f in video_files if not str(f).endswith('.part')]
+
+        subtitle_files = list(download_dir.glob("*.srt"))
+
+        if not video_files:
+            # Lista todos os arquivos no diretório para diagnóstico
+            all_files = list(download_dir.iterdir())
+            logger.error(f"未找到视频文件. 目录内容: {[str(f.name) for f in all_files]}")
+            raise Exception(f"未找到下载的视频文件 (目录中有 {len(all_files)} 个文件)")
+
         video_path = str(video_files[0])
+        try:
+            video_size_mb = os.path.getsize(video_path) / 1024 / 1024
+        except Exception:
+            video_size_mb = 0.0
+        logger.info(f"找到视频文件: {video_path} ({video_size_mb:.1f}MB)")
         subtitle_path = str(subtitle_files[0]) if subtitle_files else ""
         
         download_tasks[task_id].progress = 80.0
@@ -533,8 +648,7 @@ async def process_youtube_download_task(task_id: str, request: YouTubeDownloadRe
             
             # 移动视频文件到项目目录
             import shutil
-            from pathlib import Path
-            
+
             if video_path:
                 video_file_path = Path(video_path)
                 if video_file_path.exists():
@@ -582,7 +696,7 @@ async def process_youtube_download_task(task_id: str, request: YouTubeDownloadRe
                 download_tasks[task_id].updated_at = datetime.now().isoformat()
                 
                 # 更新项目下载进度为失败
-                await update_project_download_progress(project_id, 0.0, "下载失败：字幕文件不存在")
+                await update_project_download_progress(project_id, 0.0, "下载失败：字幕文件不存在", status="failed")
                 
                 logger.info(f"YouTube下载任务失败: {task_id}, 项目ID: {project.id}, 原因: 字幕文件不存在")
                 return
@@ -644,10 +758,18 @@ async def process_youtube_download_task(task_id: str, request: YouTubeDownloadRe
             
     except Exception as e:
         logger.error(f"处理下载任务失败: {str(e)}")
-        download_tasks[task_id].status = "failed"
-        download_tasks[task_id].error_message = str(e)
-        download_tasks[task_id].progress = 0.0
-        download_tasks[task_id].updated_at = datetime.now().isoformat()
+        if task_id in download_tasks:
+            download_tasks[task_id].status = "failed"
+            download_tasks[task_id].error_message = str(e)
+            download_tasks[task_id].progress = 0.0
+            download_tasks[task_id].updated_at = datetime.now().isoformat()
+
+        # Atualizar status do projeto no banco para "failed"
+        if project_id:
+            try:
+                await update_project_download_progress(project_id, 0.0, f"下载失败: {str(e)}", status="failed")
+            except Exception as db_err:
+                logger.error(f"更新项目失败状态时出错: {db_err}")
 
 
 async def _try_youtube_subtitle_strategies(url: str, download_dir: Path, browser: Optional[str] = None) -> str:
@@ -682,26 +804,39 @@ async def _try_download_with_different_formats(url: str, download_dir: Path, bro
     for fmt in formats:
         try:
             ydl_opts = {
-                'format': 'best[ext=mp4]/best',
+                'format': 'bestvideo+bestaudio/best',
+                'merge_output_format': 'mp4',
                 'writesubtitles': True,
                 'writeautomaticsub': True,
                 'subtitleslangs': ['en', 'zh-Hans', 'zh'],
                 'subtitlesformat': fmt,
+                'ignoreerrors': True,  # 字幕/元数据失败不中断视频下载
                 'outtmpl': str(download_dir / f'subtitle_%(title)s.%(ext)s'),
                 'noplaylist': True,
                 'quiet': True,
                 'ignoreconfig': True,
                 'config_locations': [],
             }
-            
+
             if browser:
                 ydl_opts['cookiesfrombrowser'] = (browser.lower(),)
-            
+
             def download_sync(url, ydl_opts):
                 with sanitized_yt_env():
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        return ydl.download([url])
-            
+                        try:
+                            return ydl.download([url])
+                        except Exception as e:
+                            err_msg = str(e).lower()
+                            if 'requested format is not available' in err_msg or 'format' in err_msg:
+                                logger.warning(f"subtitle download falhou com formato, tentando sem: {e}")
+                                fallback_opts = dict(ydl_opts)
+                                fallback_opts.pop('extractor_args', None)
+                                fallback_opts['format'] = 'best'
+                                with yt_dlp.YoutubeDL(fallback_opts) as ydl_fb:
+                                    return ydl_fb.download([url])
+                            raise
+
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, download_sync, url, ydl_opts)
             
@@ -741,25 +876,38 @@ async def _try_download_with_different_langs(url: str, download_dir: Path, brows
     for langs in lang_combinations:
         try:
             ydl_opts = {
-                'format': 'best[ext=mp4]/best',
+                'format': 'bestvideo+bestaudio/best',
+                'merge_output_format': 'mp4',
                 'writesubtitles': True,
                 'writeautomaticsub': True,
                 'subtitleslangs': langs,
                 'subtitlesformat': 'srt',
+                'ignoreerrors': True,  # 字幕/元数据失败不中断视频下载
                 'outtmpl': str(download_dir / f'lang_%(title)s.%(ext)s'),
                 'noplaylist': True,
                 'quiet': True,
                 'ignoreconfig': True,
                 'config_locations': [],
             }
-            
+
             if browser:
                 ydl_opts['cookiesfrombrowser'] = (browser.lower(),)
-            
+
             def download_sync(url, ydl_opts):
                 with sanitized_yt_env():
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        return ydl.download([url])
+                        try:
+                            return ydl.download([url])
+                        except Exception as e:
+                            err_msg = str(e).lower()
+                            if 'requested format is not available' in err_msg or 'format' in err_msg:
+                                logger.warning(f"lang subtitle download falhou, tentando best: {e}")
+                                fallback_opts = dict(ydl_opts)
+                                fallback_opts.pop('extractor_args', None)
+                                fallback_opts['format'] = 'best'
+                                with yt_dlp.YoutubeDL(fallback_opts) as ydl_fb:
+                                    return ydl_fb.download([url])
+                            raise
             
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, download_sync, url, ydl_opts)

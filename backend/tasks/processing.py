@@ -102,14 +102,14 @@ def process_video_pipeline(
         try:
             # 创建任务记录
             task = Task(
-                name=f"视频处理流水线",
-                description=f"处理项目 {project_id} 的完整视频流水线",
+                name=f"Pipeline de processamento de vídeo",
+                description=f"Pipeline completo de processamento de vídeo do projeto {project_id}",
                 task_type=TaskType.VIDEO_PROCESSING,
                 project_id=project_id,
                 celery_task_id=task_id,
                 status=TaskStatus.RUNNING,
                 progress=0,
-                current_step="初始化",
+                current_step="Inicialização",
                 total_steps=6
             )
             db.add(task)

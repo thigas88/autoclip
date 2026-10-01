@@ -26,7 +26,7 @@ class DatabaseConfig(BaseModel):
 
 class RedisConfig(BaseModel):
     """Redis配置"""
-    url: str = Field(default="redis://localhost:6379/0", description="Redis连接URL")
+    url: str = Field(default="redis://redis:6379/0", description="Redis连接URL")
     max_connections: int = Field(default=10, description="最大连接数")
     socket_timeout: int = Field(default=5, description="Socket超时时间")
 

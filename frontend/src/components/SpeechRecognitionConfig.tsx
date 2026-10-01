@@ -15,7 +15,7 @@ interface SpeechRecognitionConfigProps {
 }
 
 const accuracyColor: Record<string, string> = {
-  最高: 'green', 高: 'green', 较好: 'blue', 中等: 'gold', 较低: 'default',
+  'Máxima': 'green', 'Alta': 'green', 'Boa': 'blue', 'Média': 'gold', 'Baixa': 'default',
 }
 
 const SpeechRecognitionConfig: React.FC<SpeechRecognitionConfigProps> = () => {
@@ -30,13 +30,13 @@ const SpeechRecognitionConfig: React.FC<SpeechRecognitionConfigProps> = () => {
       setRuntime(rt)
       setModels(Array.isArray(ms) ? ms : [])
     } catch (e) {
-      // 后端可能尚未就绪，静默重试
+      // Backend may not be ready yet, retry silently
     } finally {
       setLoading(false)
     }
   }, [])
 
-  // 安装中或有模型下载中时，加快轮询
+  // Poll faster when installing or downloading models
   const needsFastPoll = (rt: WhisperRuntimeStatus | null, ms: WhisperModel[]) =>
     rt?.status === 'installing' || ms.some((m) => m.status === 'downloading')
 
@@ -111,10 +111,10 @@ const SpeechRecognitionConfig: React.FC<SpeechRecognitionConfigProps> = () => {
 
       {!supported && (
         <Alert type="warning" showIcon message="Plataforma não suportada"
-          description="mlx-whisper suporta apenas Macs com chip Apple Silicon (série M)." />
+          description="Whisper é suportado em Linux (openai-whisper) e macOS Apple Silicon (mlx-whisper)." />
       )}
 
-      {/* 运行时 */}
+      {/* Runtime */}
       <Card size="small" title={<Space><ThunderboltOutlined />Ambiente de Execução Whisper</Space>}>
         {installed && (
           <Space direction="vertical" style={{ width: '100%' }}>
@@ -160,7 +160,7 @@ const SpeechRecognitionConfig: React.FC<SpeechRecognitionConfigProps> = () => {
         )}
       </Card>
 
-      {/* 模型 */}
+      {/* Models */}
       <Card size="small" title="Modelos Whisper">
         {!installed && (
           <Text type="secondary">Instale primeiro o ambiente Whisper para gerenciar e baixar os modelos.</Text>

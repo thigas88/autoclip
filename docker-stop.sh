@@ -67,7 +67,7 @@ stop_services() {
     log_info "停止服务 (模式: $mode)..."
     
     # 停止服务
-    if docker-compose -f "$compose_file" down; then
+    if docker compose -f "$compose_file" down; then
         log_success "服务已停止"
     else
         log_error "停止服务失败"
@@ -134,7 +134,7 @@ show_status() {
     log_header "当前状态"
     
     echo -e "${BLUE}📊 容器状态:${NC}"
-    docker-compose ps 2>/dev/null || echo "  没有运行的服务"
+    docker compose ps 2>/dev/null || echo "  没有运行的服务"
     
     echo -e "\n${BLUE}🐳 AutoClip相关容器:${NC}"
     docker ps -a --filter "name=autoclip" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "  没有发现相关容器"
