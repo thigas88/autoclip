@@ -649,9 +649,11 @@ class VideoProcessor:
         # Fallback: se modo viral estava ativo mas ZERO clipes foram gerados,
         # reprocessar os clipes ignorados por janela viral sem a restrição viral
         if prioritize_viral_length and len(successful_clips) == 0 and len(skipped_outside_viral) > 0:
+            # Usar limite mais permissivo no fallback para garantir geração de clipes
+            fallback_max_duration = max(max_duration, 300)
             logger.warning(
                 f"Nenhum clipe na janela viral ({preferred_min_duration}-{preferred_max_duration}s). "
-                f"Fallback: gerando {len(skipped_outside_viral)} clipes dentro de max_duration={max_duration}s"
+                f"Fallback: gerando {len(skipped_outside_viral)} clipes com max_duration={fallback_max_duration}s"
             )
             for clip_data in skipped_outside_viral:
                 clip_id = clip_data['id']
@@ -676,7 +678,7 @@ class VideoProcessor:
                     aspect_ratio=aspect_ratio,
                     subtitle_preset=subtitle_preset,
                     srt_path=srt_path,
-                    max_duration=max_duration,
+                    max_duration=fallback_max_duration,
                     preferred_min_duration=preferred_min_duration,
                     preferred_max_duration=preferred_max_duration,
                     prioritize_viral_length=False,  # Desativar filtro viral no fallback
