@@ -34,20 +34,36 @@ class VideoGenerator:
         # 创建VideoProcessor实例，强制使用项目内路径
         self.video_processor = VideoProcessor(clips_dir=str(self.clips_dir), collections_dir=str(self.collections_dir))
     
-    def generate_clips(self, clips_with_titles: List[Dict], input_video: Path) -> List[Path]:
+    def generate_clips(
+        self,
+        clips_with_titles: List[Dict],
+        input_video: Path,
+        aspect_ratio: str = "original",
+        subtitle_preset: str = "none",
+        srt_path: Optional[Path] = None,
+        max_duration: int = 60,
+        preferred_min_duration: int = 10,
+        preferred_max_duration: int = 25,
+        prioritize_viral_length: bool = True,
+    ) -> List[Path]:
         """
-        生成切片视频
-        
+        Gera clipes com suporte a formato vertical (9:16), janela viral e legendas.
+
         Args:
-            clips_with_titles: 带标题的片段数据
-            input_video: 输入视频路径
-            
+            clips_with_titles: dados dos trechos com título
+            input_video: vídeo fonte
+            aspect_ratio: 'original' | '9:16' | '16:9'
+            subtitle_preset: preset de legenda ('none' desativa)
+            srt_path: caminho do SRT para burn-in
+            max_duration: duração máxima absoluta (segundos)
+            preferred_min_duration / preferred_max_duration: janela viral preferida
+            prioritize_viral_length: se True, ignora clipes fora da janela viral
+
         Returns:
-            生成的切片视频路径列表
+            Lista de caminhos dos clipes gerados
         """
         logger.info("开始生成切片视频...")
-        
-        # 准备切片数据
+
         clips_data = []
         for clip in clips_with_titles:
             clips_data.append({
@@ -56,10 +72,19 @@ class VideoGenerator:
                 'start_time': clip['start_time'],
                 'end_time': clip['end_time']
             })
-        
-        # 批量生成切片
-        successful_clips = self.video_processor.batch_extract_clips(input_video, clips_data)
-        
+
+        successful_clips = self.video_processor.batch_extract_clips(
+            input_video=input_video,
+            clips_data=clips_data,
+            aspect_ratio=aspect_ratio,
+            subtitle_preset=subtitle_preset,
+            srt_path=srt_path,
+            max_duration=max_duration,
+            preferred_min_duration=preferred_min_duration,
+            preferred_max_duration=preferred_max_duration,
+            prioritize_viral_length=prioritize_viral_length,
+        )
+
         logger.info(f"切片视频生成完成，共{len(successful_clips)}个切片")
         return successful_clips
     
@@ -133,34 +158,56 @@ class VideoGenerator:
         logger.info(f"合集元数据已保存到: {output_path}")
         return output_path
 
-def run_step6_video(clips_with_titles_path: Path, collections_path: Path, 
-                   input_video: Path, output_dir: Optional[Path] = None, 
-                   clips_dir: Optional[str] = None, collections_dir: Optional[str] = None, 
-                   metadata_dir: Optional[str] = None) -> Dict:
+def run_step6_video(clips_with_titles_path: Path, collections_path: Path,
+                   input_video: Path, output_dir: Optional[Path] = None,
+                   clips_dir: Optional[str] = None, collections_dir: Optional[str] = None,
+                   metadata_dir: Optional[str] = None,
+                   aspect_ratio: str = "original",
+                   subtitle_preset: str = "none",
+                   srt_path: Optional[Path] = None,
+                   max_duration: int = 60,
+                   preferred_min_duration: int = 10,
+                   preferred_max_duration: int = 25,
+                   prioritize_viral_length: bool = True) -> Dict:
     """
-    运行Step 6: 视频切割
-    
+    运行Step 6: 视频切割 com suporte a formato vertical, janela viral e legendas.
+
     Args:
         clips_with_titles_path: 带标题的片段文件路径
         collections_path: 合集文件路径
         input_video: 输入视频路径
         output_dir: 输出目录
-        
+        aspect_ratio: 'original' | '9:16' | '16:9'
+        subtitle_preset: preset de legenda ('none' desativa)
+        srt_path: caminho do SRT para burn-in
+        max_duration: duração máxima absoluta (segundos)
+        preferred_min_duration / preferred_max_duration: janela viral preferida
+        prioritize_viral_length: se True, ignora clipes fora da janela viral
+
     Returns:
         生成结果信息
     """
     # 加载数据
     with open(clips_with_titles_path, 'r', encoding='utf-8') as f:
         clips_with_titles = json.load(f)
-    
+
     with open(collections_path, 'r', encoding='utf-8') as f:
         collections_data = json.load(f)
-    
+
     # 创建视频生成器
     generator = VideoGenerator(clips_dir=clips_dir, collections_dir=collections_dir, metadata_dir=metadata_dir)
-    
-    # 生成切片视频
-    successful_clips = generator.generate_clips(clips_with_titles, input_video)
+
+    # 生成切片视频 com formatação avançada
+    successful_clips = generator.generate_clips(
+        clips_with_titles, input_video,
+        aspect_ratio=aspect_ratio,
+        subtitle_preset=subtitle_preset,
+        srt_path=srt_path,
+        max_duration=max_duration,
+        preferred_min_duration=preferred_min_duration,
+        preferred_max_duration=preferred_max_duration,
+        prioritize_viral_length=prioritize_viral_length,
+    )
     
     # 生成合集视频
     successful_collections = generator.generate_collections(collections_data)

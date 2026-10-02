@@ -42,6 +42,7 @@ services:
       - SILICONFLOW_API_KEY=${SILICONFLOW_API_KEY}
       - CUSTOM_API_KEY=${CUSTOM_API_KEY}
       - CUSTOM_BASE_URL=${CUSTOM_BASE_URL}
+      - CUSTOM_API_STYLE=${CUSTOM_API_STYLE}
     depends_on:
       redis:
         condition: service_healthy
@@ -77,6 +78,7 @@ services:
       - SILICONFLOW_API_KEY=${SILICONFLOW_API_KEY}
       - CUSTOM_API_KEY=${CUSTOM_API_KEY}
       - CUSTOM_BASE_URL=${CUSTOM_BASE_URL}
+      - CUSTOM_API_STYLE=${CUSTOM_API_STYLE}
     command: celery -A backend.core.celery_app worker --loglevel=info --concurrency=2 -Q celery,processing
     depends_on:
       redis:

@@ -114,6 +114,7 @@ class LLMManager:
             "SILICONFLOW_API_KEY": "siliconflow_api_key",
             "CUSTOM_API_KEY": "custom_api_key",
             "CUSTOM_BASE_URL": "custom_base_url",
+            "CUSTOM_API_STYLE": "custom_api_style",
             "LLM_PROVIDER": "llm_provider",
             "MODEL_NAME": "model_name"
         }

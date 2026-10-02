@@ -1,6 +1,6 @@
 /**
- * 统一状态栏组件 - 替换旧的复杂进度系统
- * 支持下载中、处理中、完成等状态的统一显示
+ * Componente de barra de status unificada - substitui o antigo sistema complexo de progresso
+ * Suporta exibição unificada de estados: baixando, processando, concluído, etc.
  */
 
 import React, { useEffect, useState } from 'react'
@@ -30,12 +30,12 @@ export const UnifiedStatusBar: React.FC<UnifiedStatusBarProps> = ({
   
   const progress = getProgress(projectId)
 
-  // 根据状态决定是否轮询
+  // Decidir se deve fazer polling com base no status
   useEffect(() => {
-    // 如果已有进度且已到达终态，则不启动轮询
+    // Se já houver progresso e estiver em estado final, não iniciar polling
     if (progress && (isCompleted(progress.stage) || isFailed(progress.message))) {
       if (isPolling) {
-        console.log(`进度已终态，停止轮询: ${projectId}`)
+        console.log(`Progresso em estado final, parando polling: ${projectId}`)
         stopPolling()
         setIsPolling(false)
       }
@@ -43,71 +43,71 @@ export const UnifiedStatusBar: React.FC<UnifiedStatusBarProps> = ({
     }
 
     if ((status === 'processing' || status === 'pending') && !isPolling) {
-      console.log(`开始轮询处理进度: ${projectId}`)
-      startPolling([projectId], 5000) // 5秒轮询一次，减少频繁请求
+      console.log(`Iniciando polling de progresso de processamento: ${projectId}`)
+      startPolling([projectId], 5000) // Polling a cada 5 segundos para reduzir requisições frequentes
       setIsPolling(true)
     } else if (status !== 'processing' && status !== 'pending' && isPolling) {
-      console.log(`停止轮询处理进度: ${projectId}`)
+      console.log(`Parando polling de progresso de processamento: ${projectId}`)
       stopPolling()
       setIsPolling(false)
     }
 
     return () => {
       if (isPolling) {
-        console.log(`清理轮询: ${projectId}`)
+        console.log(`Limpando polling: ${projectId}`)
         stopPolling()
         setIsPolling(false)
       }
     }
   }, [status, projectId, isPolling, startPolling, stopPolling, progress])
 
-  // 下载进度轮询
+  // Polling de progresso de download
   useEffect(() => {
     if (status === 'downloading') {
       const pollDownloadProgress = async () => {
         try {
-          console.log(`轮询下载进度: ${projectId}`)
+          console.log(`Polling de progresso de download: ${projectId}`)
           const response = await fetch(`/api/v1/projects/${projectId}`)
           if (response.ok) {
             const projectData = await response.json()
-            console.log('项目数据:', projectData)
+            console.log('Dados do projeto:', projectData)
             const newProgress = projectData.processing_config?.download_progress || 0
-            console.log(`下载进度更新: ${newProgress}%`)
+            console.log(`Atualização de progresso de download: ${newProgress}%`)
             setCurrentDownloadProgress(newProgress)
             onDownloadProgressUpdate?.(newProgress)
             
-            // 如果下载完成，检查是否需要切换到处理状态
+            // Se download concluído, verificar se deve mudar para status de processamento
             if (newProgress >= 100) {
-              console.log('下载完成，切换到处理状态')
+              console.log('Download concluído, mudando para status de processamento')
               setTimeout(() => {
                 onStatusChange?.('processing')
               }, 1000)
             }
           } else {
-            console.error('获取项目数据失败:', response.status, response.statusText)
+            console.error('Falha ao obter dados do projeto:', response.status, response.statusText)
           }
         } catch (error) {
-          console.error('获取下载进度失败:', error)
+          console.error('Falha ao obter progresso de download:', error)
         }
       }
 
-      // 立即获取一次
+      // Obter imediatamente uma vez
       pollDownloadProgress()
       
-      // 每5秒轮询一次，减少频繁请求
+      // Polling a cada 5 segundos para reduzir requisições frequentes
       const interval = setInterval(pollDownloadProgress, 5000)
       
       return () => clearInterval(interval)
     }
   }, [status, projectId, onDownloadProgressUpdate, onStatusChange])
 
-  // 处理状态变化
+  // Processar mudança de status
   useEffect(() => {
     if (progress) {
-      // 进度到达终态时，立刻停止轮询并同步状态
+      // Quando progresso atingir estado final, parar polling e sincronizar status imediatamente
       if (isCompleted(progress.stage) || isFailed(progress.message)) {
         if (isPolling) {
-          console.log(`进度达到终态，停止轮询: ${projectId}`)
+          console.log(`Progresso atingiu estado final, parando polling: ${projectId}`)
           stopPolling()
           setIsPolling(false)
         }
@@ -118,8 +118,8 @@ export const UnifiedStatusBar: React.FC<UnifiedStatusBarProps> = ({
     }
   }, [progress, onStatusChange])
 
-  // ===== Calm Premium 状态展示（见 DESIGN.md）=====
-  // 进行中：细进度线 + 标签 + 右侧 mono 百分比
+  // ===== Exibição de status Calm Premium (ver DESIGN.md) =====
+  // Em andamento: linha fina de progresso + rótulo + porcentagem mono à direita
   const ProgressRow = ({ label, percent }: { label: string; percent: number }) => (
     <div style={{ width: '100%' }}>
       <div style={{ height: 4, background: 'var(--ac-line)', borderRadius: 999, overflow: 'hidden' }}>
@@ -131,7 +131,7 @@ export const UnifiedStatusBar: React.FC<UnifiedStatusBarProps> = ({
       </div>
     </div>
   )
-  // 终态：小圆点 + 标签
+  // Estado final: pequeno ponto + rótulo
   const StatusRow = ({ label, dot, color }: { label: string; dot: string; color: string }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7, height: 4 + 9 + 12.5 + 2, minHeight: 26 }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: dot, flex: '0 0 auto' }} />
@@ -152,11 +152,11 @@ export const UnifiedStatusBar: React.FC<UnifiedStatusBarProps> = ({
   if (status === 'completed') return <StatusRow label="Concluído" dot="var(--ac-ok)" color="var(--ac-sub)" />
   if (status === 'failed') return <StatusRow label="Falha no processamento" dot="var(--ac-error)" color="var(--ac-error)" />
 
-  // 等待
+  // Aguardando
   return <StatusRow label="Aguardando" dot="var(--ac-muted)" color="var(--ac-muted)" />
 }
 
-// 简化的进度条组件 - 用于详细进度显示
+// Componente simplificado de barra de progresso - para exibição detalhada
 interface SimpleProgressDisplayProps {
   projectId: string
   status: string

@@ -196,6 +196,36 @@ class SimplePipelineAdapter:
                 
                 # Step 6: 视频切割
                 logger.info("执行Step 6: 视频切割")
+
+                # Ler configurações de formato e legendas do projeto
+                clip_format_cfg = {}
+                subtitle_cfg = {}
+                try:
+                    from backend.core.database import SessionLocal
+                    from backend.models.project import Project
+                    db = SessionLocal()
+                    try:
+                        proj = db.query(Project).filter(Project.id == self.project_id).first()
+                        if proj and proj.processing_config:
+                            clip_format_cfg = proj.processing_config.get("clip_format", {})
+                            subtitle_cfg = proj.processing_config.get("subtitles", {})
+                            logger.info(f"Configurações de corte carregadas: format={clip_format_cfg}, subtitles={subtitle_cfg}")
+                    finally:
+                        db.close()
+                except Exception as e:
+                    logger.warning(f"Falha ao ler configurações de corte do projeto: {e}")
+
+                aspect_ratio = clip_format_cfg.get("aspect_ratio", "original")
+                max_duration = clip_format_cfg.get("max_duration", 60)
+                preferred_min = clip_format_cfg.get("preferred_min_duration", 10)
+                preferred_max = clip_format_cfg.get("preferred_max_duration", 25)
+                prioritize_viral = clip_format_cfg.get("prioritize_viral_length", False)
+
+                subtitle_enabled = subtitle_cfg.get("enabled", False)
+                subtitle_preset = subtitle_cfg.get("preset", "none") if subtitle_enabled else "none"
+
+                srt_path_for_clips = Path(input_srt_path) if input_srt_path and Path(input_srt_path).exists() else None
+
                 video_result = run_step6_video(
                     metadata_dir / "step4_titles.json",
                     metadata_dir / "step5_collections.json",
@@ -203,7 +233,14 @@ class SimplePipelineAdapter:
                     output_dir=output_dir,
                     clips_dir=str(clips_output_dir),
                     collections_dir=str(collections_output_dir),
-                    metadata_dir=str(metadata_dir)
+                    metadata_dir=str(metadata_dir),
+                    aspect_ratio=aspect_ratio,
+                    subtitle_preset=subtitle_preset,
+                    srt_path=srt_path_for_clips,
+                    max_duration=max_duration,
+                    preferred_min_duration=preferred_min,
+                    preferred_max_duration=preferred_max,
+                    prioritize_viral_length=prioritize_viral,
                 )
             else:
                 logger.warning("没有大纲数据，跳过标题生成、主题聚类和视频切割")

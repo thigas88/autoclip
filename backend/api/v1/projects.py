@@ -317,23 +317,26 @@ async def update_project(
         project = project_service.update_project(project_id, project_data)
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
-        
-        # Convert to response (simplified)
+
+        # Retornar dados completos do projeto atualizado
         return ProjectResponse(
-            id=str(project_id),  # Keep as string for UUID
-            name=project_data.name or "Updated Project",
-            description=project_data.description,
-            project_type=ProjectType.DEFAULT,  # Use enum
-            status=ProjectStatus.PENDING,  # Use enum
-            source_url=None,
-            source_file=None,
-            settings=project_data.settings or {},
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
-            completed_at=None,
-            total_clips=0,
-            total_collections=0,
-            total_tasks=0
+            id=str(project.id),
+            name=project.name,
+            description=project.description,
+            project_type=project.project_type if hasattr(project, 'project_type') else ProjectType.DEFAULT,
+            status=project.status if hasattr(project, 'status') else ProjectStatus.PENDING,
+            source_url=getattr(project, 'source_url', None),
+            source_file=getattr(project, 'source_file', None),
+            video_path=getattr(project, 'video_path', None),
+            thumbnail=getattr(project, 'thumbnail', None),
+            settings=project.settings if hasattr(project, 'settings') else {},
+            processing_config=project.processing_config if hasattr(project, 'processing_config') else None,
+            created_at=project.created_at if hasattr(project, 'created_at') else datetime.utcnow(),
+            updated_at=project.updated_at if hasattr(project, 'updated_at') else datetime.utcnow(),
+            completed_at=getattr(project, 'completed_at', None),
+            total_clips=getattr(project, 'total_clips', 0) or 0,
+            total_collections=getattr(project, 'total_collections', 0) or 0,
+            total_tasks=getattr(project, 'total_tasks', 0) or 0
         )
     except HTTPException:
         raise

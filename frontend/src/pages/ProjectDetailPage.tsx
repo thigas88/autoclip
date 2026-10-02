@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { 
-  Layout, 
-  Card, 
-  Typography, 
-  Button, 
-  Space, 
-  Alert, 
-  Spin, 
+import {
+  Layout,
+  Card,
+  Typography,
+  Button,
+  Space,
+  Alert,
+  Spin,
   Empty,
   message,
-  Radio
+  Radio,
+  Switch,
+  Select,
+  Divider
 } from 'antd'
 import {
   ArrowLeftOutlined,
@@ -20,7 +23,9 @@ import {
   FileTextOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined,
+  ScissorOutlined,
+  FontSizeOutlined
 } from '@ant-design/icons'
 import { useProjectStore, Clip, Collection } from '../store/useProjectStore'
 import { projectApi } from '../services/api'
@@ -58,6 +63,48 @@ const ProjectDetailPage: React.FC = () => {
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null)
   const [processingStatus, setProcessingStatus] = useState<{status?: string} | null>(null)
   const { generateAndDownloadCollectionVideo } = useCollectionVideoDownload()
+
+  // Estados para geração de novos cortes
+  const [showGenerateClips, setShowGenerateClips] = useState(false)
+  const [generateAspectRatio, setGenerateAspectRatio] = useState<'original' | '9:16' | '16:9'>('9:16')
+  const [generateViralMode, setGenerateViralMode] = useState(true)
+  const [generateSubtitles, setGenerateSubtitles] = useState(false)
+  const [generateSubtitlePreset, setGenerateSubtitlePreset] = useState('simple_white')
+  const [generatingClips, setGeneratingClips] = useState(false)
+
+  const handleGenerateMoreClips = async () => {
+    if (!id || !currentProject) return
+    setGeneratingClips(true)
+    try {
+      // Atualizar processing_config do projeto com as opções escolhidas
+      const updatedConfig = {
+        ...(currentProject.processing_config || {}),
+        clip_format: {
+          aspect_ratio: generateAspectRatio,
+          max_duration: generateViralMode ? 60 : 300,
+          preferred_min_duration: generateViralMode ? 10 : 5,
+          preferred_max_duration: generateViralMode ? 25 : 120,
+          prioritize_viral_length: generateViralMode,
+        },
+        subtitles: {
+          enabled: generateSubtitles,
+          preset: generateSubtitles ? generateSubtitlePreset : 'none',
+        },
+      }
+      await projectApi.updateProject(id, { processing_config: updatedConfig })
+      // Disparar reprocessamento com as novas configurações
+      await projectApi.retryProcessing(id)
+      message.success('Geração de novos cortes iniciada')
+      setShowGenerateClips(false)
+      loadProcessingStatus()
+      loadProjectLogs()
+    } catch (error) {
+      console.error('Failed to generate more clips:', error)
+      message.error('Falha ao iniciar geração de cortes')
+    } finally {
+      setGeneratingClips(false)
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -407,6 +454,98 @@ const ProjectDetailPage: React.FC = () => {
               </div>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <Button
+                  type="primary"
+                  icon={<ScissorOutlined />}
+                  onClick={() => setShowGenerateClips(!showGenerateClips)}
+                  disabled={generatingClips || currentProject.status !== 'completed'}
+                  style={{
+                    borderRadius: '8px',
+                    background: showGenerateClips ? 'var(--ac-accent)' : undefined,
+                    border: 'none',
+                    fontWeight: 500,
+                    height: '36px',
+                    fontSize: '13px'
+                  }}
+                >
+                  {showGenerateClips ? 'Cancelar' : 'Gerar Mais Cortes'}
+                </Button>
+                {showGenerateClips && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '16px',
+                    padding: '8px 16px',
+                    background: 'var(--ac-card-bg, #1f1f1f)',
+                    borderRadius: '8px',
+                    border: '1px solid var(--ac-line, #303030)',
+                    flexWrap: 'wrap'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Text style={{ fontSize: '12px', color: 'var(--ac-sub)', fontWeight: 500 }}>Proporção</Text>
+                      <Select
+                        value={generateAspectRatio}
+                        onChange={setGenerateAspectRatio}
+                        size="small"
+                        style={{ width: 100 }}
+                        options={[
+                          { label: '9:16', value: '9:16' },
+                          { label: '16:9', value: '16:9' },
+                          { label: 'Original', value: 'original' }
+                        ]}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Text style={{ fontSize: '12px', color: 'var(--ac-sub)', fontWeight: 500 }}>Modo Viral</Text>
+                      <Switch
+                        checked={generateViralMode}
+                        onChange={setGenerateViralMode}
+                        size="small"
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <FontSizeOutlined style={{ color: 'var(--ac-sub)', fontSize: '14px' }} />
+                      <Text style={{ fontSize: '12px', color: 'var(--ac-sub)', fontWeight: 500 }}>Legendas</Text>
+                      <Switch
+                        checked={generateSubtitles}
+                        onChange={setGenerateSubtitles}
+                        size="small"
+                      />
+                      {generateSubtitles && (
+                        <Select
+                          value={generateSubtitlePreset}
+                          onChange={setGenerateSubtitlePreset}
+                          size="small"
+                          style={{ width: 140 }}
+                          options={[
+                            { label: 'Branca Simples', value: 'simple_white' },
+                            { label: 'Amarela Simples', value: 'simple_yellow' },
+                            { label: 'Negrito Centralizado', value: 'bold_centered' },
+                            { label: 'Estilo Karaoke', value: 'karaoke_style' },
+                            { label: 'Redes Sociais', value: 'social_media' }
+                          ]}
+                        />
+                      )}
+                    </div>
+                    <Divider type="vertical" style={{ height: '24px', borderColor: 'var(--ac-line, #303030)' }} />
+                    <Button
+                      type="primary"
+                      size="small"
+                      icon={<ScissorOutlined />}
+                      loading={generatingClips}
+                      onClick={handleGenerateMoreClips}
+                      style={{
+                        borderRadius: '6px',
+                        background: 'var(--ac-accent)',
+                        border: 'none',
+                        fontWeight: 600,
+                        fontSize: '12px'
+                      }}
+                    >
+                      Gerar Cortes
+                    </Button>
+                  </div>
+                )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <Text style={{ fontSize: '13px', color: 'var(--ac-sub)', fontWeight: 500 }}>Ordenar por</Text>
                   <Radio.Group

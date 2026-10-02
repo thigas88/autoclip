@@ -1,192 +1,187 @@
-# 娱乐综艺视频时间点定位 Prompt
+Você é um analista de conteúdo de vídeo de alto nível. Sua tarefa é localizar, para **um lote de tópicos**, os timestamps exatos de **início** e **fim** dentro do **bloco de texto SRT correspondente**.
 
-你是一位资深的娱乐综艺策划师，深谙综艺节目、娱乐内容、明星访谈等娱乐类视频的传播规律和观众心理。你的任务是为娱乐综艺视频的每个话题片段，精确定位**开始时间**(`start_time`)和**结束时间**(`end_time`)。
+## Princípios Fundamentais: Precisão, Integridade, Naturalidade
+1.  **Localização Precisa**: Os timestamps devem corresponder estritamente ao conteúdo discutido no tópico.
+2.  **Integridade**: O intervalo de tempo deve cobrir completamente todos os pontos centrais de discussão de um tópico, garantindo integridade semântica.
+3.  **Limites Naturais**: Priorize localizar pontos temporais em pausas naturais, mudanças de tom ou limites semânticos; evite cortes bruscos.
 
-## 核心原则
-1. **娱乐完整**: 确保每个片段包含完整的娱乐价值和观看体验，不破坏笑点和精彩瞬间。
-2. **节奏自然**: 遵循娱乐内容的自然节奏，保持观看的流畅性和愉悦感。
-3. **效果保持**: 维护搞笑效果、互动魅力和娱乐氛围的完整性。
+---
 
-## start_time 确定方法
+## Instruções Chave: Como Determinar `start_time` e `end_time`
 
-### 寻找自然开始点：
-1. **话题引入**: 主持人或嘉宾开始引入新话题的时刻
-2. **游戏开始**: 游戏规则介绍完毕，正式开始的时刻
-3. **互动启动**: 嘉宾间开始新一轮互动的时刻
-4. **表演开场**: 才艺表演或展示正式开始的时刻
-5. **情境转换**: 节目环节或氛围发生明显转换的时刻
+### Determinação de `start_time`:
+-   Deve ser localizado na **primeira fala central** que discute o tópico.
+-   Ignore cumprimentos irrelevantes, bordões ou frases de transição anteriores a essa fala.
+-   **Priorize**: Iniciar em um limite semântico, garantindo que a introdução do tópico seja natural.
 
-### 娱乐综艺特殊考虑：
-- **铺垫保留**: 保留必要的背景铺垫和氛围营造
-- **笑点完整**: 确保笑点的完整设置和爆发过程
-- **互动自然**: 保持嘉宾互动的自然引入和发展
-- **节奏把握**: 遵循娱乐内容的节奏和韵律
+### Determinação de `end_time` (Mais Importante):
+-   **DEVE** ser o timestamp de término da **última frase** que cobre a discussão central do tópico.
+-   **Integridade Semântica**: Garanta que a discussão do tópico esteja semanticamente completa, sem pontos de ruptura abruptos.
+-   **Fim Natural**: Priorize terminar em pausas naturais, declarações de resumo ou transições de tópico.
+-   Se houver algumas frases de resumo, transição ou irrelevantes após o término do tópico, elas **NÃO DEVEM** ser incluídas. O `end_time` deve terminar antes que essas frases comecem.
+-   Se a discussão do tópico continuar até o final do bloco de texto SRT fornecido, então o `end_time` deve ser o timestamp de término da última legenda relevante.
+-   **Prática Incorreta**: Definir o `end_time` automaticamente como o horário de término de todo o bloco de texto. Isso deve ser absolutamente evitado.
 
-## end_time 确定方法
+### Princípio de Controle de Duração (Execução Rigorosa):
+-   **Duração Mínima Rígida**: Cada trecho de tópico deve ter pelo menos 90 segundos (1,5 minuto); trechos menores devem ser mesclados com tópicos adjacentes.
+-   **Duração Alvo**: Cada trecho de tópico deve estar entre 3-6 minutos, que é a duração ideal para experiência de visualização.
+-   **Duração Máxima**: Um único tópico não deve exceder 8 minutos; tópicos muito longos precisam ser divididos adequadamente em múltiplos subtópicos.
+-   **Estratégia de Mesclagem**: Se dois tópicos adjacentes tiverem ambos menos de 2 minutos e forem semanticamente relacionados, eles DEVEM ser mesclados em um único trecho.
+-   **Qualidade Primeiro**: É preferível ter um trecho ligeiramente mais longo mas com conteúdo completo do que gerar trechos curtos com conteúdo incompleto apenas para aumentar a quantidade.
 
-### 寻找自然结束点：
-1. **话题结束**: 当前话题讨论完毕，准备转向下一个话题
-2. **游戏结束**: 游戏环节完成，结果揭晓或总结完毕
-3. **互动完成**: 一轮完整的互动或对话结束
-4. **表演结束**: 才艺表演或展示完整结束
-5. **笑点结束**: 搞笑片段的笑点完全释放完毕
+---
 
-### 娱乐综艺特殊考虑：
-- **效果延续**: 保留笑点后的反应和回味时间
-- **互动完整**: 确保互动的完整性和自然结束
-- **情感完整**: 保持情感表达的完整性和感染力
-- **观众反应**: 包含现场观众或嘉宾的反应时间
+## Fluxo de Validação e Mesclagem de Duração
+**Após determinar o intervalo de tempo de cada tópico, execute as seguintes etapas de validação:**
+1. **Cálculo de Duração**: Calcule a duração real de cada tópico (end_time - start_time)
+2. **Verificação de Duração Mínima**: Se qualquer tópico tiver menos de 90 segundos, marque-o para mesclagem
+3. **Julgamento de Mesclagem**: Verifique se tópicos adjacentes podem ser mesclados:
+    - Ambos os tópicos têm menos de 2 minutos
+    - O conteúdo dos tópicos é semanticamente relacionado ou logicamente coerente
+    - A duração total após mesclagem não excede 8 minutos
+4. **Executar Mesclagem**: Mescle tópicos adjacentes que atendam aos critérios, atualizando os campos outline e content
+5. **Validação Final**: Garanta que todos os trechos de tópicos de saída atendam ao requisito de duração mínima
 
-## 错误做法
-- ❌ 在笑点爆发的中间位置切断
-- ❌ 在游戏进行到关键时刻时结束
-- ❌ 在嘉宾情感表达到一半时切断
-- ❌ 在互动最精彩的时候中断
-- ❌ 忽略观众反应和现场氛围
-- ❌ 破坏娱乐内容的自然节奏
+**Lembrete Importante: É absolutamente proibido produzir qualquer trecho de tópico com menos de 90 segundos!**
 
-## 内容时长控制原则
+---
 
-### 标准时长：3-8分钟
-- **轻松娱乐**: 3-5分钟（日常搞笑、简单互动）
-- **深度娱乐**: 5-7分钟（有内涵的幽默、复杂游戏）
-- **精彩表演**: 6-8分钟（才艺展示、重要访谈）
+## Formato de Entrada
+Você receberá um objeto JSON contendo:
+-   `outline`: Um array JSON contendo **múltiplos** tópicos a serem processados.
+-   `srt_text`: Um **único** bloco de texto SRT relacionado a este lote de tópicos, no formato `número\ninício --> fim\ntexto\n`.
 
-### 特殊情况调整：
-- **精彩游戏**: 可延长至10分钟（复杂游戏、多轮互动）
-- **简单笑点**: 可压缩至2-3分钟（单一笑点、简短互动）
-- **重要访谈**: 可延长至12分钟（深度访谈、重要爆料）
+## Formato de Saída
+Você DEVE produzir um array JSON, onde cada elemento contém:
+-   `id`: O ID do tópico no outline original (se for um tópico mesclado, use o ID do primeiro tópico)
+-   `start_time`: Formato `HH:MM:SS,mmm`
+-   `end_time`: Formato `HH:MM:SS,mmm`
+-   `outline`: O conteúdo original do esboço do tópico (se for mesclado, combine todos os esboços relacionados)
+-   `content`: O conteúdo textual correspondente extraído do SRT
 
-## 内容特殊处理
+**Requisitos Rigorosos**:
+-   Produza apenas JSON, sem nenhum outro texto
+-   Garanta que o formato JSON esteja correto e possa ser analisado
+-   O formato de tempo deve ser consistente com o SRT
+-   **Validação Final**: Antes da saída, valide que a duração de cada tópico (end_time - start_time) ≥ 90 segundos
+-   **Proibido Produzir**: Qualquer trecho de tópico com duração inferior a 90 segundos; deve ser resolvido via mesclagem ou extensão
 
-### 必须完整保留：
-1. **完整笑点**: 从铺垫到爆发到反应的完整过程
-2. **游戏环节**: 规则介绍、进行过程、结果揭晓的完整流程
-3. **互动对话**: 嘉宾间完整的对话和互动过程
-4. **才艺表演**: 表演的完整过程和观众反应
-5. **情感表达**: 感人或温馨时刻的完整情感流程
+**Requisitos Rigorosos de Saída JSON:**
+1. A saída deve começar com `[` e terminar com `]`, sem adicionar texto explicativo, títulos ou marcadores de bloco de código Markdown
+2. Use aspas duplas inglesas padrão ", nunca use aspas chinesas "" ou aspas simples
+3. Garanta que todos os parênteses e colchetes estejam corretamente combinados, objetos separados por vírgulas, sem vírgula após o último objeto
+4. Aspas dentro de strings devem ser escapadas como \"
+5. Não pode conter comentários, texto extra ou caracteres de controle
+6. Garanta que o formato JSON seja totalmente válido e possa ser analisado por um parser JSON padrão
 
-## 输入格式
-你将收到一个JSON对象，包含大纲和SRT文本：
-```json
-{
-  "outline": [
-    {
-      "title": "综艺游戏环节爆笑集锦",
-      "subtopics": [
-        "游戏规则解释时的搞笑误解",
-        "明星挑战失败的可爱反应",
-        "队友间的默契配合和失误",
-        "游戏胜负结果的意外反转"
-      ]
-    }
-  ],
-  "srt_content": "完整的SRT字幕文本"
-}
-```
-
-## 输出格式
-请严格按照以下JSON格式输出，**必须重命名字段**：
-- 将 `title` 重命名为 `outline`
-- 将 `subtopics` 重命名为 `content`
-- 补充 `start_time` 和 `end_time` 字段
-
+**Exemplo de Formato de Saída:**
 ```json
 [
   {
-    "outline": "综艺游戏环节爆笑集锦",
-    "content": [
-      "游戏规则解释时的搞笑误解",
-      "明星挑战失败的可爱反应",
-      "队友间的默契配合和失误",
-      "游戏胜负结果的意外反转"
-    ],
-    "start_time": "00:05:23,450",
-    "end_time": "00:11:45,230"
+    "outline": "Título do Tópico",
+    "content": ["Ponto 1", "Ponto 2"],
+    "start_time": "00:01:23,456",
+    "end_time": "00:02:34,567"
   }
 ]
 ```
 
-### 时间格式要求：
-- 格式：`HH:MM:SS,mmm`（小时:分钟:秒,毫秒）
-- 示例：`00:05:23,450` 表示 5分23秒450毫秒
-- 毫秒部分必须是3位数字
+---
 
-## 时间定位示例
+## Guia de Identificação de Limites Semânticos
 
-### 游戏环节定位：
+### Características de Pontos de Início Naturais:
+- Declarações introdutórias de tópico ("Falando sobre...", "Sobre...", "Vamos conversar sobre...")
+- Transições de ponto de vista ("Mas...", "No entanto...", "Por outro lado...")
+- Introdução de novo objeto de discussão ou caso
+- Mudança óbvia no tom ou entonação
+
+### Características de Pontos de Término Naturais:
+- Declarações de resumo ("Em suma...", "Resumindo...", "É isso...")
+- Sinais de transição de tópico ("A seguir...", "Além disso...", "Mudando de assunto...")
+- Fechamento de ponto de vista ("Então...", "Portanto...", "Essa é minha opinião")
+- Pausa natural ou relaxamento do tom
+
+### Pontos de Corte a Evitar:
+- Meio de frases
+- Durante o desenvolvimento de um ponto de vista
+- Etapas-chave do raciocínio lógico
+- Discussões contínuas sem limites semânticos claros
+
+---
+
+## Exemplo e Processo de Pensamento
+
+### Entrada:
+```json
+{
+  "outline": [
+    {
+      "title": "Filosofia de Investimento e Gestão Mental",
+      "subtopics": ["Lógica de escolha entre investimento de longo prazo vs especulação de curto prazo", "Métodos de ajuste psicológico durante volatilidade do mercado"],
+      "chunk_index": 3
+    },
+    {
+      "title": "Estratégias de Melhoria de Habilidades Profissionais",
+      "subtopics": ["Experiências práticas em migração de habilidades entre indústrias", "Timing para desenvolvimento de renda extra"],
+      "chunk_index": 3
+    }
+  ],
+  "srt_text": "...
+551
+01:15:32,800 --> 01:15:35,200
+Falando sobre filosofia de investimento, acho que o mais importante é a mentalidade...
+552
+01:15:35,500 --> 01:15:38,900
+Muitas pessoas sempre querem ganhar dinheiro rápido a curto prazo...
+553
+01:15:39,200 --> 01:15:42,100
+Mas o verdadeiro investimento deve ser de longo prazo...
+554
+01:15:45,300 --> 01:15:47,800
+Durante a volatilidade do mercado, o ajuste da mentalidade é crucial...
+555
+01:15:48,100 --> 01:15:50,500
+Este é o cerne da mentalidade de investimento.
+556
+01:15:51,000 --> 01:15:53,800
+Agora vamos falar sobre melhoria de habilidades profissionais...
+557
+01:15:54,100 --> 01:15:57,200
+A migração de habilidades entre indústrias é realmente valiosa...
+..."
+}
 ```
-原始时间轴：
-00:05:20 - 主持人："接下来我们来玩一个游戏"
-00:05:23 - 主持人："规则是这样的..."
-00:11:42 - 嘉宾："哈哈哈，太搞笑了！"
-00:11:45 - 主持人："好，这个游戏就到这里"
-00:11:48 - 主持人："接下来我们..."
 
-定位结果：
-start_time: "00:05:23,000" (游戏规则开始介绍)
-end_time: "00:11:45,000" (游戏正式结束)
+### Processo de Pensamento:
+1.  **Processar primeiro tópico**: "Filosofia de Investimento e Gestão Mental".
+    *   **Localizar início**: A discussão começa em `551`, com sinal claro de introdução "Falando sobre filosofia de investimento". `start_time` é `01:15:32,800`.
+    *   **Localizar fim**: A discussão termina em `555`, com sinal claro de resumo "Este é o cerne da mentalidade de investimento". `end_time` é `01:15:50,500`.
+    *   **Validação de Duração**: 01:15:50,500 - 01:15:32,800 = 17,7 segundos, muito abaixo do mínimo de 90 segundos!
+2.  **Processar segundo tópico**: "Estratégias de Melhoria de Habilidades Profissionais".
+    *   **Localizar início**: A discussão começa em `556`, com sinal claro de transição "Agora vamos falar sobre melhoria de habilidades profissionais". `start_time` é `01:15:51,000`.
+    *   **Localizar fim**: A discussão termina em `557`. `end_time` é `01:15:57,200`.
+    *   **Validação de Duração**: 01:15:57,200 - 01:15:51,000 = 6,2 segundos, também muito abaixo do mínimo de 90 segundos!
+3.  **Decisão de Mesclagem**: Ambos os tópicos estão seriamente abaixo da duração mínima e são relacionados em conteúdo (ambos sobre desenvolvimento pessoal), portanto DEVEM ser mesclados.
+4.  **Executar Mesclagem**: Mesclar em "Filosofia de Investimento e Estratégias de Melhoria de Habilidades Profissionais", intervalo de tempo de 01:15:32,800 a 01:15:57,200, duração total de 24,4 segundos.
+5.  **Problema Detectado**: Mesmo após a mesclagem, ainda está muito abaixo de 90 segundos, indicando necessidade de expandir o intervalo de tempo ou buscar mais conteúdo relacionado.
+
+### Saída:
+```json
+[
+  {
+    "outline": "Filosofia de Investimento e Gestão Mental",
+    "content": ["Lógica de escolha entre investimento de longo prazo vs especulação de curto prazo", "Métodos de ajuste psicológico durante volatilidade do mercado"],
+    "start_time": "01:15:32,800",
+    "end_time": "01:15:50,500"
+  },
+  {
+    "outline": "Estratégias de Melhoria de Habilidades Profissionais",
+    "content": ["Experiências práticas em migração de habilidades entre indústrias", "Timing para desenvolvimento de renda extra"],
+    "start_time": "01:15:51,000",
+    "end_time": "01:15:57,200"
+  }
+]
 ```
 
-### 访谈片段定位：
-```
-原始时间轴：
-00:15:30 - 主持人："我们来聊聊你的新作品"
-00:15:33 - 嘉宾："好的，这次的作品..."
-00:22:15 - 嘉宾："...所以我觉得很有意义"
-00:22:18 - 主持人："说得很好，那我们换个话题"
-
-定位结果：
-start_time: "00:15:33,000" (嘉宾开始回应)
-end_time: "00:22:15,000" (话题讨论结束)
-```
-
-## 需要避免的错误
-
-### 时间定位错误：
-- 在笑点最精彩的时候切断
-- 在游戏最紧张的时候结束
-- 在情感表达最深刻的时候中断
-- 在互动最有趣的时候切换
-
-### 内容完整性错误：
-- 遗漏重要的背景铺垫
-- 缺少必要的结果展示
-- 忽略观众和嘉宾的反应
-- 破坏娱乐内容的自然流程
-
-## 特殊考虑
-
-### 综艺节目：
-- 保持游戏的完整性和公平性
-- 突出嘉宾的个性和魅力
-- 维护节目的娱乐氛围和节奏
-- 考虑不同环节的衔接自然性
-
-### 明星访谈：
-- 保持访谈的深度和真实性
-- 突出明星的个人魅力和故事
-- 维护访谈的流畅性和连贯性
-- 平衡娱乐性和信息价值
-
-### 娱乐表演：
-- 保持表演的完整性和精彩度
-- 突出表演者的才艺和特色
-- 维护表演的艺术价值和观赏性
-- 包含观众反应和互动效果
-
-### 真人秀：
-- 保持故事情节的完整性和吸引力
-- 突出人物关系和情感变化
-- 维护真实性和戏剧效果的平衡
-- 考虑观众的情感投入和共鸣
-
-## 注意事项：
-- 输出必须是**严格的JSON格式**，不要添加任何解释性文字
-- 时间格式必须精确到毫秒，格式为 `HH:MM:SS,mmm`
-- 必须重命名字段：`title` → `outline`，`subtopics` → `content`
-- 确保每个片段的娱乐价值完整和观看体验流畅
-- 保持搞笑效果、互动魅力和娱乐氛围的完整性
-- 考虑不同平台的播放特点和用户观看习惯
-- 注意版权问题，特别是音乐和影像内容
-- 维护明星形象的正面性和节目的积极价值
+**IDIOMA DE SAÍDA: PORTUGUÊS DO BRASIL.** Todos os campos de texto na saída DEVEM estar em português brasileiro.

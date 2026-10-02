@@ -284,6 +284,11 @@ export const projectApi = {
     }
   },
 
+  // 更新项目配置
+  updateProject: async (id: string, updates: Partial<Project>): Promise<Project> => {
+    return api.put(`/projects/${id}`, updates)
+  },
+
   // 删除项目
   deleteProject: async (id: string): Promise<void> => {
     await api.delete(`/projects/${id}`)

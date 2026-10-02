@@ -8,6 +8,7 @@ import json
 import shutil
 import logging
 from pathlib import Path
+from enum import Enum
 from typing import Dict, Any, Optional, List
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
 from pydantic import BaseModel, Field, validator, field_validator
@@ -75,19 +76,56 @@ class ApiSettings(BaseModel):
         return v
 
 
+class ClipFormatSettings(BaseModel):
+    """Configurações de formato dos clipes"""
+    aspect_ratio: str = Field(default="original", description="Proporção de aspecto: 'original', '9:16' (vertical), '16:9' (horizontal)")
+    max_duration: int = Field(default=60, ge=5, le=300, description="Duração máxima dos clipes em segundos")
+    preferred_min_duration: int = Field(default=10, ge=3, le=60, description="Duração mínima preferida para cortes virais")
+    preferred_max_duration: int = Field(default=25, ge=5, le=120, description="Duração máxima preferida para cortes virais")
+    prioritize_viral_length: bool = Field(default=False, description="Priorizar cortes entre preferred_min e preferred_max")
+
+    @validator('preferred_max_duration')
+    def validate_preferred_range(cls, v, values):
+        min_dur = values.get('preferred_min_duration', 10)
+        if v < min_dur:
+            raise ValueError('preferred_max_duration deve ser >= preferred_min_duration')
+        return v
+
+
+class SubtitlePreset(str, Enum):
+    """Presets de legenda disponíveis"""
+    NONE = "none"
+    SIMPLE_WHITE = "simple_white"
+    SIMPLE_YELLOW = "simple_yellow"
+    BOLD_CENTERED = "bold_centered"
+    KARAOKE_STYLE = "karaoke_style"
+    SOCIAL_MEDIA = "social_media"
+
+
+class SubtitleSettings(BaseModel):
+    """Configurações de legendas dos clipes"""
+    enabled: bool = Field(default=False, description="Habilitar legendas nos clipes gerados")
+    preset: SubtitlePreset = Field(default=SubtitlePreset.NONE, description="Preset de estilo da legenda")
+    font_size: int = Field(default=24, ge=12, le=72, description="Tamanho da fonte da legenda")
+    position: str = Field(default="bottom", description="Posição da legenda: 'top', 'center', 'bottom'")
+    language: str = Field(default="auto", description="Idioma da legenda ('auto' usa o idioma detectado)")
+
+
 class ProcessingSettings(BaseModel):
     """处理设置"""
     processing_chunk_size: int = Field(default=5000, description="处理块大小")
     processing_min_score: float = Field(default=0.7, description="最小评分阈值")
     processing_max_clips: int = Field(default=5, description="合集最大切片数")
     processing_max_retries: int = Field(default=3, description="最大重试次数")
-    
+    clip_format: ClipFormatSettings = Field(default_factory=ClipFormatSettings, description="Configurações de formato dos clipes")
+    subtitles: SubtitleSettings = Field(default_factory=SubtitleSettings, description="Configurações de legendas")
+
     @validator('processing_chunk_size')
     def validate_chunk_size(cls, v):
         if not 1000 <= v <= 10000:
             raise ValueError('处理块大小必须在1000-10000之间')
         return v
-    
+
     @validator('processing_min_score')
     def validate_min_score(cls, v):
         if not 0.1 <= v <= 1.0:

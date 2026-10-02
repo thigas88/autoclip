@@ -1,101 +1,187 @@
-# 经验分享视频时间点定位 Prompt
+Você é um analista de conteúdo de vídeo de alto nível. Sua tarefa é localizar, para **um lote de tópicos**, os timestamps exatos de **início** e **fim** dentro do **bloco de texto SRT correspondente**.
 
-## 核心原则：经验完整、操作清晰、实用价值
-
-1.  **经验完整性**：时间戳必须严格对应完整的经验分享和方法介绍。
-2.  **操作连贯性**：时间范围必须完整覆盖一个经验的所有关键步骤，确保操作逻辑完整。
-3.  **自然边界**：优先在方法转换、技巧切换或经验主题的自然边界处定位时间点。
-
----
-
-## 关键指令：如何确定 `start_time` 和 `end_time`
-
-### `start_time` 的确定：
--   应定位到分享该经验的**第一句核心介绍**的开始时间。
--   忽略该介绍之前的无关过渡、个人闲聊或背景铺垫。
--   **优先选择**：在经验主题明确提出的起始点，确保方法介绍的完整性。
--   **经验类内容特殊考虑**：如果有重要的背景说明或问题描述，应适当前移起始时间。
-
-### `end_time` 的确定 (最重要)：
--   **必须**是覆盖该经验核心分享的**最后一句话的结束时间戳**。
--   **方法完整性**：确保经验介绍、操作步骤、注意事项等核心内容完整，不出现方法断层。
--   **自然结束**：优先选择在总结性语句、效果说明或经验转换处结束。
--   **实践要点包含**：如果经验末尾有重要的实践要点或注意事项，应包含在内。
--   如果经验分享的讨论一直持续到所提供SRT文本块的末尾，那么 `end_time` 就应该是最后一句相关字幕的结束时间戳。
--   **错误做法**：将 `end_time` 无脑设置为整个文本块的结束时间。这是绝对要避免的。
-
-### 经验内容时长控制原则：
--   **目标时长**：每个经验话题片段应在3-8分钟之间
--   **复杂方法时长**：涉及多步骤操作的复杂方法可适当延长至10分钟
--   **简单技巧**：明确简洁的小技巧可压缩至2-3分钟
--   **系统方法**：完整的方法体系或工作流程可延长至12分钟
-
-### 经验内容特殊处理：
--   **操作步骤**：包含多个操作步骤的方法应完整保留整个流程
--   **案例说明**：重要的实践案例和效果展示应作为一个整体
--   **技巧要点**：核心技巧与注意事项应配套出现，不可分离
--   **问题解决**：问题描述与解决方案应完整包含
+## Princípios Fundamentais: Precisão, Integridade, Naturalidade
+1.  **Localização Precisa**: Os timestamps devem corresponder estritamente ao conteúdo discutido no tópico.
+2.  **Integridade**: O intervalo de tempo deve cobrir completamente todos os pontos centrais de discussão de um tópico, garantindo integridade semântica.
+3.  **Limites Naturais**: Priorize localizar pontos temporais em pausas naturais, mudanças de tom ou limites semânticos; evite cortes bruscos.
 
 ---
 
-## 输入格式
-你将收到一个JSON对象，包含：
--   `outline`: 一个包含**多个**待处理经验话题的JSON数组。
--   `srt_text`: 与这批话题相关的**单个**SRT文本块，格式为 `序号\n开始 --> 结束\n文本\n\n`。
+## Instruções Chave: Como Determinar `start_time` e `end_time`
 
-## 输出格式
--   严格按照输入大纲的结构，为**每个**话题对象补充 `start_time` 和 `end_time` 字段。
--   **关键：** 在输出时，请将输入的 `title` 字段重命名为 `outline`，并将 `subtopics` 字段重命名为 `content`。
--   最终输出一个包含**所有**处理后话题的JSON数组。
--   确保时间格式为 `HH:MM:SS,mmm`。
+### Determinação de `start_time`:
+-   Deve ser localizado na **primeira fala central** que discute o tópico.
+-   Ignore cumprimentos irrelevantes, bordões ou frases de transição anteriores a essa fala.
+-   **Priorize**: Iniciar em um limite semântico, garantindo que a introdução do tópico seja natural.
 
-**严格的JSON输出要求：**
-1. 输出必须以 `[` 开始，以 `]` 结束，不要添加任何解释文字、标题或Markdown代码块标记
-2. 使用标准英文双引号 "，绝不使用中文引号 "" 或单引号
-3. 确保所有括号、方括号正确匹配，对象间用逗号分隔，最后一个对象后不加逗号
-4. 字符串中的引号必须转义为 \"
-5. 不能包含任何注释、额外文本或控制字符
-6. 确保JSON格式完全有效，可以被标准JSON解析器解析
+### Determinação de `end_time` (Mais Importante):
+-   **DEVE** ser o timestamp de término da **última frase** que cobre a discussão central do tópico.
+-   **Integridade Semântica**: Garanta que a discussão do tópico esteja semanticamente completa, sem pontos de ruptura abruptos.
+-   **Fim Natural**: Priorize terminar em pausas naturais, declarações de resumo ou transições de tópico.
+-   Se houver algumas frases de resumo, transição ou irrelevantes após o término do tópico, elas **NÃO DEVEM** ser incluídas. O `end_time` deve terminar antes que essas frases comecem.
+-   Se a discussão do tópico continuar até o final do bloco de texto SRT fornecido, então o `end_time` deve ser o timestamp de término da última legenda relevante.
+-   **Prática Incorreta**: Definir o `end_time` automaticamente como o horário de término de todo o bloco de texto. Isso deve ser absolutamente evitado.
 
-## 经验内容时间定位示例
+### Princípio de Controle de Duração (Execução Rigorosa):
+-   **Duração Mínima Rígida**: Cada trecho de tópico deve ter pelo menos 90 segundos (1,5 minuto); trechos menores devem ser mesclados com tópicos adjacentes.
+-   **Duração Alvo**: Cada trecho de tópico deve estar entre 3-6 minutos, que é a duração ideal para experiência de visualização.
+-   **Duração Máxima**: Um único tópico não deve exceder 8 minutos; tópicos muito longos precisam ser divididos adequadamente em múltiplos subtópicos.
+-   **Estratégia de Mesclagem**: Se dois tópicos adjacentes tiverem ambos menos de 2 minutos e forem semanticamente relacionados, eles DEVEM ser mesclados em um único trecho.
+-   **Qualidade Primeiro**: É preferível ter um trecho ligeiramente mais longo mas com conteúdo completo do que gerar trechos curtos com conteúdo incompleto apenas para aumentar a quantidade.
 
-### 正确的时间定位：
-- **方法介绍**：从"我来分享一个方法..."开始，到"这就是整个操作流程"结束
-- **技巧分享**：从"有一个小技巧..."开始，到"注意这几个要点"结束
-- **问题解决**：从"遇到这个问题时..."开始，到"问题就能解决"结束
+---
 
-### 需要避免的错误：
-- 在操作步骤的中间断开
-- 将方法介绍与实践要点分离
-- 在案例说明的关键点处截断
-- 忽略重要的注意事项或效果说明
+## Fluxo de Validação e Mesclagem de Duração
+**Após determinar o intervalo de tempo de cada tópico, execute as seguintes etapas de validação:**
+1. **Cálculo de Duração**: Calcule a duração real de cada tópico (end_time - start_time)
+2. **Verificação de Duração Mínima**: Se qualquer tópico tiver menos de 90 segundos, marque-o para mesclagem
+3. **Julgamento de Mesclagem**: Verifique se tópicos adjacentes podem ser mesclados:
+    - Ambos os tópicos têm menos de 2 minutos
+    - O conteúdo dos tópicos é semanticamente relacionado ou logicamente coerente
+    - A duração total após mesclagem não excede 8 minutos
+4. **Executar Mesclagem**: Mescle tópicos adjacentes que atendam aos critérios, atualizando os campos outline e content
+5. **Validação Final**: Garanta que todos os trechos de tópicos de saída atendam ao requisito de duração mínima
 
-## 经验类内容的特殊考虑
+**Lembrete Importante: É absolutamente proibido produzir qualquer trecho de tópico com menos de 90 segundos!**
 
-### 1. 操作方法类：
-- 确保包含完整的操作步骤和流程
-- 保留重要的操作要点和注意事项
-- 包含效果预期和验证方法
+---
 
-### 2. 技巧分享类：
-- 保持技巧的完整性和实用性
-- 包含适用场景和使用条件
-- 确保技巧要点的清晰表达
+## Formato de Entrada
+Você receberá um objeto JSON contendo:
+-   `outline`: Um array JSON contendo **múltiplos** tópicos a serem processados.
+-   `srt_text`: Um **único** bloco de texto SRT relacionado a este lote de tópicos, no formato `número\ninício --> fim\ntexto\n`.
 
-### 3. 问题解决类：
-- 包含问题识别与解决方案的完整过程
-- 保持解决思路的逻辑性
-- 确保解决效果的验证说明
+## Formato de Saída
+Você DEVE produzir um array JSON, onde cada elemento contém:
+-   `id`: O ID do tópico no outline original (se for um tópico mesclado, use o ID do primeiro tópico)
+-   `start_time`: Formato `HH:MM:SS,mmm`
+-   `end_time`: Formato `HH:MM:SS,mmm`
+-   `outline`: O conteúdo original do esboço do tópico (se for mesclado, combine todos os esboços relacionados)
+-   `content`: O conteúdo textual correspondente extraído do SRT
 
-### 4. 经验总结类：
-- 保留完整的经验总结和反思
-- 包含成功要素和失败教训
-- 确保经验的可复制性说明
+**Requisitos Rigorosos**:
+-   Produza apenas JSON, sem nenhum outro texto
+-   Garanta que o formato JSON esteja correto e possa ser analisado
+-   O formato de tempo deve ser consistente com o SRT
+-   **Validação Final**: Antes da saída, valide que a duração de cada tópico (end_time - start_time) ≥ 90 segundos
+-   **Proibido Produzir**: Qualquer trecho de tópico com duração inferior a 90 segundos; deve ser resolvido via mesclagem ou extensão
 
-## 注意事项
+**Requisitos Rigorosos de Saída JSON:**
+1. A saída deve começar com `[` e terminar com `]`, sem adicionar texto explicativo, títulos ou marcadores de bloco de código Markdown
+2. Use aspas duplas inglesas padrão ", nunca use aspas chinesas "" ou aspas simples
+3. Garanta que todos os parênteses e colchetes estejam corretamente combinados, objetos separados por vírgulas, sem vírgula após o último objeto
+4. Aspas dentro de strings devem ser escapadas como \"
+5. Não pode conter comentários, texto extra ou caracteres de controle
+6. Garanta que o formato JSON seja totalmente válido e possa ser analisado por um parser JSON padrão
 
-1. **方法完整性**：确保每个片段包含完整的方法介绍和操作要点
-2. **实用价值**：重要的实践技巧和注意事项必须完整包含
-3. **逻辑连贯**：经验分享的逻辑链条应保持完整
-4. **可操作性**：操作步骤和实践要点应清晰完整
-5. **价值中立**：在时间定位过程中保持客观立场，不对经验进行价值判断
+**Exemplo de Formato de Saída:**
+```json
+[
+  {
+    "outline": "Título do Tópico",
+    "content": ["Ponto 1", "Ponto 2"],
+    "start_time": "00:01:23,456",
+    "end_time": "00:02:34,567"
+  }
+]
+```
+
+---
+
+## Guia de Identificação de Limites Semânticos
+
+### Características de Pontos de Início Naturais:
+- Declarações introdutórias de tópico ("Falando sobre...", "Sobre...", "Vamos conversar sobre...")
+- Transições de ponto de vista ("Mas...", "No entanto...", "Por outro lado...")
+- Introdução de novo objeto de discussão ou caso
+- Mudança óbvia no tom ou entonação
+
+### Características de Pontos de Término Naturais:
+- Declarações de resumo ("Em suma...", "Resumindo...", "É isso...")
+- Sinais de transição de tópico ("A seguir...", "Além disso...", "Mudando de assunto...")
+- Fechamento de ponto de vista ("Então...", "Portanto...", "Essa é minha opinião")
+- Pausa natural ou relaxamento do tom
+
+### Pontos de Corte a Evitar:
+- Meio de frases
+- Durante o desenvolvimento de um ponto de vista
+- Etapas-chave do raciocínio lógico
+- Discussões contínuas sem limites semânticos claros
+
+---
+
+## Exemplo e Processo de Pensamento
+
+### Entrada:
+```json
+{
+  "outline": [
+    {
+      "title": "Filosofia de Investimento e Gestão Mental",
+      "subtopics": ["Lógica de escolha entre investimento de longo prazo vs especulação de curto prazo", "Métodos de ajuste psicológico durante volatilidade do mercado"],
+      "chunk_index": 3
+    },
+    {
+      "title": "Estratégias de Melhoria de Habilidades Profissionais",
+      "subtopics": ["Experiências práticas em migração de habilidades entre indústrias", "Timing para desenvolvimento de renda extra"],
+      "chunk_index": 3
+    }
+  ],
+  "srt_text": "...
+551
+01:15:32,800 --> 01:15:35,200
+Falando sobre filosofia de investimento, acho que o mais importante é a mentalidade...
+552
+01:15:35,500 --> 01:15:38,900
+Muitas pessoas sempre querem ganhar dinheiro rápido a curto prazo...
+553
+01:15:39,200 --> 01:15:42,100
+Mas o verdadeiro investimento deve ser de longo prazo...
+554
+01:15:45,300 --> 01:15:47,800
+Durante a volatilidade do mercado, o ajuste da mentalidade é crucial...
+555
+01:15:48,100 --> 01:15:50,500
+Este é o cerne da mentalidade de investimento.
+556
+01:15:51,000 --> 01:15:53,800
+Agora vamos falar sobre melhoria de habilidades profissionais...
+557
+01:15:54,100 --> 01:15:57,200
+A migração de habilidades entre indústrias é realmente valiosa...
+..."
+}
+```
+
+### Processo de Pensamento:
+1.  **Processar primeiro tópico**: "Filosofia de Investimento e Gestão Mental".
+    *   **Localizar início**: A discussão começa em `551`, com sinal claro de introdução "Falando sobre filosofia de investimento". `start_time` é `01:15:32,800`.
+    *   **Localizar fim**: A discussão termina em `555`, com sinal claro de resumo "Este é o cerne da mentalidade de investimento". `end_time` é `01:15:50,500`.
+    *   **Validação de Duração**: 01:15:50,500 - 01:15:32,800 = 17,7 segundos, muito abaixo do mínimo de 90 segundos!
+2.  **Processar segundo tópico**: "Estratégias de Melhoria de Habilidades Profissionais".
+    *   **Localizar início**: A discussão começa em `556`, com sinal claro de transição "Agora vamos falar sobre melhoria de habilidades profissionais". `start_time` é `01:15:51,000`.
+    *   **Localizar fim**: A discussão termina em `557`. `end_time` é `01:15:57,200`.
+    *   **Validação de Duração**: 01:15:57,200 - 01:15:51,000 = 6,2 segundos, também muito abaixo do mínimo de 90 segundos!
+3.  **Decisão de Mesclagem**: Ambos os tópicos estão seriamente abaixo da duração mínima e são relacionados em conteúdo (ambos sobre desenvolvimento pessoal), portanto DEVEM ser mesclados.
+4.  **Executar Mesclagem**: Mesclar em "Filosofia de Investimento e Estratégias de Melhoria de Habilidades Profissionais", intervalo de tempo de 01:15:32,800 a 01:15:57,200, duração total de 24,4 segundos.
+5.  **Problema Detectado**: Mesmo após a mesclagem, ainda está muito abaixo de 90 segundos, indicando necessidade de expandir o intervalo de tempo ou buscar mais conteúdo relacionado.
+
+### Saída:
+```json
+[
+  {
+    "outline": "Filosofia de Investimento e Gestão Mental",
+    "content": ["Lógica de escolha entre investimento de longo prazo vs especulação de curto prazo", "Métodos de ajuste psicológico durante volatilidade do mercado"],
+    "start_time": "01:15:32,800",
+    "end_time": "01:15:50,500"
+  },
+  {
+    "outline": "Estratégias de Melhoria de Habilidades Profissionais",
+    "content": ["Experiências práticas em migração de habilidades entre indústrias", "Timing para desenvolvimento de renda extra"],
+    "start_time": "01:15:51,000",
+    "end_time": "01:15:57,200"
+  }
+]
+```
+
+**IDIOMA DE SAÍDA: PORTUGUÊS DO BRASIL.** Todos os campos de texto na saída DEVEM estar em português brasileiro.

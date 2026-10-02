@@ -27,7 +27,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
   const [showBilibiliManager, setShowBilibiliManager] = useState(false)
   const playerRef = useRef<ReactPlayer>(null)
 
-  // 生成视频缩略图
+  // Gerar miniatura do vídeo
   useEffect(() => {
     if (videoUrl) {
       generateThumbnail()
@@ -39,7 +39,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
     
     const video = document.createElement('video')
     video.crossOrigin = 'anonymous'
-    video.currentTime = 1 // 获取第1秒的帧作为缩略图
+    video.currentTime = 1 // Capturar frame do segundo 1 como miniatura
     
     video.onloadeddata = () => {
       const canvas = document.createElement('canvas')
@@ -59,10 +59,10 @@ const ClipCard: React.FC<ClipCardProps> = ({
 
   const handleDownloadWithTitle = async () => {
     try {
-      // 直接调用API下载方法，它会处理文件名
+      // Chamar diretamente método de download da API, que cuida do nome do arquivo
       await onDownload(clip.id)
     } catch (error) {
-      console.error('下载失败:', error)
+      console.error('Falha no download:', error)
       message.error('Falha no download')
     }
   }
@@ -72,7 +72,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
   }
 
   const handleTitleUpdate = (newTitle: string) => {
-    // 更新本地状态
+    // Atualizar estado local
     onClipUpdate?.(clip.id, { title: newTitle })
   }
 
@@ -88,7 +88,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
     if (!startTime || !endTime) return 0
     
     try {
-      // 解析时间格式 "HH:MM:SS,mmm" 或 "HH:MM:SS.mmm"
+      // Analisar formato de tempo "HH:MM:SS,mmm" ou "HH:MM:SS.mmm"
       const parseTime = (timeStr: string): number => {
         const normalized = timeStr.replace(',', '.')
         const parts = normalized.split(':')
@@ -119,14 +119,14 @@ const ClipCard: React.FC<ClipCardProps> = ({
   }
 
 
-  // 获取要显示的简介内容
+  // Obter conteúdo da descrição a ser exibido
   const getDisplayContent = () => {
-    // 优先显示推荐理由（这是AI生成的内容要点）
+    // Priorizar motivo da recomendação (pontos-chave gerados por IA)
     if (clip.recommend_reason && clip.recommend_reason.trim()) {
       return clip.recommend_reason
     }
     
-    // 如果没有推荐理由，尝试从content中获取非转写文本的内容要点
+    // Se não houver motivo de recomendação, tentar obter pontos-chave do content (não-transcrição)
     if (clip.content && Array.isArray(clip.content) && clip.content.length > 0) {
       const contentPoints = clip.content.filter(item => {
         const text = item.trim()
@@ -140,7 +140,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
       }
     }
     
-    // 最后回退到outline（大纲）
+    // Por fim, usar outline (tópicos) como fallback
     if (clip.outline && clip.outline.trim()) {
       return clip.outline
     }
@@ -203,7 +203,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
                 <PlayCircleOutlined style={{ fontSize: '40px', color: 'rgba(255,255,255,0.95)' }} />
               </div>
               
-              {/* 右上角推荐分数 — 克制玻璃胶囊 + mono 数字 */}
+              {/* Canto superior direito: pontuação — cápsula discreta + números mono */}
               <div
                 style={{
                   position: 'absolute',
@@ -224,7 +224,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
                 <span className="ac-mono">{(clip.final_score * 100).toFixed(0)}</span>
               </div>
               
-              {/* 左下角时间区间 — 玻璃胶囊 + mono */}
+              {/* Canto inferior esquerdo: intervalo de tempo — cápsula + mono */}
               <div
                 style={{
                   position: 'absolute',
@@ -245,7 +245,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
                 <span className="ac-mono">{getDuration()}</span>
               </div>
 
-              {/* 右下角视频时长 — 玻璃胶囊 + mono */}
+              {/* Canto inferior direito: duração — cápsula + mono */}
               <div
                 style={{
                   position: 'absolute',
@@ -274,14 +274,14 @@ const ClipCard: React.FC<ClipCardProps> = ({
             flexDirection: 'column',
             justifyContent: 'space-between'
           }}>
-            {/* 内容区域 - 固定高度 */}
+            {/* Área de conteúdo - altura fixa */}
             <div style={{ 
               flex: 1,
               display: 'flex',
               flexDirection: 'column',
-              minHeight: 0 // 允许flex子项收缩
+              minHeight: 0 // Permitir encolhimento do filho flex
             }}>
-              {/* 标题区域 - 固定高度 */}
+              {/* Área de título - altura fixa */}
               <div style={{ 
                 height: '44px',
                 marginBottom: '8px',
@@ -302,7 +302,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
                 />
               </div>
               
-              {/* 内容要点 - 固定高度 */}
+              {/* Pontos-chave - altura fixa */}
               <div style={{ 
                 height: '58px',
                 marginBottom: '12px',
@@ -337,7 +337,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
               </div>
             </div>
             
-            {/* 操作按钮 - 固定在底部 */}
+            {/* Botões de ação - fixos na parte inferior */}
             <div style={{ 
               display: 'flex', 
               gap: '8px',
@@ -383,7 +383,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
           </div>
         </Card>
 
-      {/* 视频播放模态框 */}
+      {/* Modal de reprodução de vídeo */}
       <Modal
         open={showPlayer}
         onCancel={handleClosePlayer}
@@ -425,7 +425,7 @@ const ClipCard: React.FC<ClipCardProps> = ({
                 fontSize: '16px', 
                 fontWeight: '500',
                 flex: 1,
-                maxWidth: 'calc(100% - 40px)' // 确保不会与关闭按钮重叠
+                maxWidth: 'calc(100% - 40px)' // Garantir que não sobreponha o botão de fechar
               }}
             />
           </div>
@@ -459,16 +459,16 @@ const ClipCard: React.FC<ClipCardProps> = ({
         )}
       </Modal>
 
-      {/* B站管理弹窗 */}
+      {/* Modal de gerenciamento Bilibili */}
       <BilibiliManager
         visible={showBilibiliManager}
         onClose={() => setShowBilibiliManager(false)}
         projectId={projectId || ''}
         clipIds={[clip.id]}
-        clipTitles={[clip.title || clip.generated_title || '视频片段']}
+        clipTitles={[clip.title || clip.generated_title || 'Clipe de vídeo']}
         onUploadSuccess={() => {
-          // 投稿成功后可以刷新数据或显示提示
-          console.log('投稿成功')
+          // Após publicação bem-sucedida, atualizar dados ou mostrar aviso
+          console.log('Publicação bem-sucedida')
         }}
       />
     </>
